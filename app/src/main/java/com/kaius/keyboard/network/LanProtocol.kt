@@ -11,6 +11,10 @@ object LanProtocol {
     const val ACTION_KEY_UP = "up"
     const val ACTION_KEY_TAP = "tap"
     const val ACTION_PING = "ping"
+    const val ACTION_SET_TELEX = "telex"
+
+    // JSON fields
+    const val FIELD_TELEX = "tx"
 }
 
 data class DiscoveredReceiver(

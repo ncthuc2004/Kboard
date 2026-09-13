@@ -85,4 +85,8 @@ class TransportManager(
     fun registerBluetoothHid() {
         bluetoothTransport.registerHidApp()
     }
+
+    fun sendTelexConfig(enabled: Boolean) {
+        wifiTransport.sendTelexConfig(enabled)
+    }
 }

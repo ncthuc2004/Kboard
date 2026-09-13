@@ -74,10 +74,26 @@ class KeyboardViewModel(application: Application) : AndroidViewModel(application
     private val _showPairedDialog = MutableStateFlow(false)
     val showPairedDialog: StateFlow<Boolean> = _showPairedDialog.asStateFlow()
 
+    private val prefs = application.getSharedPreferences("kboard_settings", android.content.Context.MODE_PRIVATE)
+    private val _isTelexEnabled = MutableStateFlow(prefs.getBoolean("is_telex_enabled", true))
+    val isTelexEnabled: StateFlow<Boolean> = _isTelexEnabled.asStateFlow()
+
     init {
+        val telexOn = _isTelexEnabled.value
+        transportManager.wifiTransport.isTelexEnabled = telexOn
         transportManager.initialize()
         refreshPairedDevices()
         lanDiscovery.startDiscovery()
+    }
+
+    fun toggleTelex() {
+        setTelexEnabled(!_isTelexEnabled.value)
+    }
+
+    fun setTelexEnabled(enabled: Boolean) {
+        _isTelexEnabled.value = enabled
+        prefs.edit().putBoolean("is_telex_enabled", enabled).apply()
+        transportManager.sendTelexConfig(enabled)
     }
 
     fun setAppRole(role: AppRole) {

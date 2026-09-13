@@ -102,6 +102,7 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
     val showPairedDialog by viewModel.showPairedDialog.collectAsState()
     val pairedDevices by viewModel.pairedDevices.collectAsState()
     val discoveredReceivers by viewModel.discoveredReceivers.collectAsState()
+    val isTelexEnabled by viewModel.isTelexEnabled.collectAsState()
 
     Column(
         modifier = Modifier
@@ -146,8 +147,10 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
 
             Spacer(modifier = Modifier.height(2.dp))
 
-            // QUICK SHORTCUTS & MACRO BAR (Sleek minimalist keys)
+            // QUICK SHORTCUTS & MACRO BAR (Sleek minimalist keys with direct VI/EN toggle)
             QuickMacroBar(
+                isTelexEnabled = isTelexEnabled,
+                onToggleTelex = { viewModel.toggleTelex() },
                 onSendMacro = { mod, key -> viewModel.sendMacro(mod, key) }
             )
 
@@ -182,9 +185,11 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
         }
     }
 
-    // Wi-Fi Config Dialog
+    // Keyboard Settings & Wi-Fi LAN Config Dialog
     if (showWifiDialog) {
-        WifiConfigDialog(
+        KeyboardSettingsDialog(
+            isTelexEnabled = isTelexEnabled,
+            onToggleTelex = { viewModel.toggleTelex() },
             currentIp = state.wifiTargetIp,
             currentPort = state.wifiTargetPort,
             onSave = { ip, port -> viewModel.updateWifiTarget(ip, port) },
@@ -501,13 +506,46 @@ fun LanConnectionBar(
 }
 
 @Composable
-fun QuickMacroBar(onSendMacro: (Byte, Byte) -> Unit) {
+fun QuickMacroBar(
+    isTelexEnabled: Boolean,
+    onToggleTelex: () -> Unit,
+    onSendMacro: (Byte, Byte) -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(20.dp),
         horizontalArrangement = Arrangement.spacedBy(3.dp)
     ) {
+        // DIRECT LANGUAGE SWITCH BUTTON: [ VI ] or [ EN ]
+        Box(
+            modifier = Modifier
+                .width(46.dp)
+                .fillMaxSize()
+                .clip(RoundedCornerShape(3.dp))
+                .background(if (isTelexEnabled) KeyActiveBg else KeySpecialBg)
+                .border(1.dp, if (isTelexEnabled) AccentPrimary else SurfaceBorderSubtle, RoundedCornerShape(3.dp))
+                .clickable { onToggleTelex() },
+            contentAlignment = Alignment.Center
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(5.dp)
+                        .clip(CircleShape)
+                        .background(if (isTelexEnabled) AccentPrimary else KeyTextSubtle)
+                )
+                Spacer(modifier = Modifier.width(3.dp))
+                Text(
+                    text = if (isTelexEnabled) "VI" else "EN",
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isTelexEnabled) AccentPrimary else KeyTextMuted,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+        }
+
         val macros = listOf(
             Triple("Ctrl+C", HidKeyCodes.MOD_LEFT_CTRL, HidKeyCodes.KEY_C),
             Triple("Ctrl+V", HidKeyCodes.MOD_LEFT_CTRL, HidKeyCodes.KEY_V),
@@ -838,7 +876,9 @@ fun DiagnosticsConsole(
 }
 
 @Composable
-fun WifiConfigDialog(
+fun KeyboardSettingsDialog(
+    isTelexEnabled: Boolean,
+    onToggleTelex: () -> Unit,
     currentIp: String,
     currentPort: Int,
     onSave: (String, Int) -> Unit,
@@ -852,10 +892,60 @@ fun WifiConfigDialog(
         onDismissRequest = onDismiss,
         containerColor = SurfaceBar,
         title = {
-            Text("Cấu hình Wi-Fi LAN", color = KeyTextMain, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text("Cài đặt Bàn phím & Kết nối", color = KeyTextMain, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                // SECTION 1: VIETNAMESE TELEX CONFIGURATION
+                Surface(
+                    color = SurfaceElevated,
+                    shape = RoundedCornerShape(6.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorderSubtle),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onToggleTelex() }
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Bộ gõ Tiếng Việt Telex",
+                                color = KeyTextMain,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = if (isTelexEnabled) "Đang BẬT (Tự động bỏ dấu s, f, r, x, j, w, aa, ee...)" else "Đang TẮT (Chế độ gõ tiếng Anh chuẩn)",
+                                color = KeyTextSubtle,
+                                fontSize = 10.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(if (isTelexEnabled) KeyActiveBg else KeySpecialBg)
+                                .border(1.dp, if (isTelexEnabled) AccentPrimary else SurfaceBorderSubtle, RoundedCornerShape(4.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = if (isTelexEnabled) "Telex: BẬT" else "Telex: TẮT",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isTelexEnabled) AccentPrimary else KeyTextMuted
+                            )
+                        }
+                    }
+                }
+
+                // SECTION 2: WI-FI LAN CONNECTION SETTINGS
                 Text("IP thiết bị nhận (Máy tính hoặc Điện thoại khác):", color = KeyTextMuted, fontSize = 12.sp)
 
                 Text(
@@ -911,7 +1001,7 @@ fun WifiConfigDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Hủy", color = KeyTextSubtle)
+                Text("Đóng", color = KeyTextSubtle)
             }
         }
     )

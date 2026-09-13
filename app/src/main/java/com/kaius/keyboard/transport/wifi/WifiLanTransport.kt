@@ -111,8 +111,20 @@ class WifiLanTransport(
         }
     }
 
+    @Volatile
+    var isTelexEnabled: Boolean = true
+
+    fun sendTelexConfig(enabled: Boolean) {
+        isTelexEnabled = enabled
+        val txVal = if (enabled) 1 else 0
+        val json = """{"a":"telex","tx":$txVal}"""
+        sendJsonPacket(json)
+        log("Đã đồng bộ Telex: ${if (enabled) "BẬT" else "TẮT"}")
+    }
+
     override fun sendKeyDown(keyCode: Byte, modifiers: Byte) {
-        val json = """{"a":"down","k":${keyCode.toInt() and 0xFF},"m":${modifiers.toInt() and 0xFF}}"""
+        val tx = if (isTelexEnabled) 1 else 0
+        val json = """{"a":"down","k":${keyCode.toInt() and 0xFF},"m":${modifiers.toInt() and 0xFF},"tx":$tx}"""
         sendJsonPacket(json)
     }
 
@@ -122,7 +134,8 @@ class WifiLanTransport(
     }
 
     override fun sendKeyTap(keyCode: Byte, modifiers: Byte) {
-        val json = """{"a":"tap","k":${keyCode.toInt() and 0xFF},"m":${modifiers.toInt() and 0xFF}}"""
+        val tx = if (isTelexEnabled) 1 else 0
+        val json = """{"a":"tap","k":${keyCode.toInt() and 0xFF},"m":${modifiers.toInt() and 0xFF},"tx":$tx}"""
         sendJsonPacket(json)
     }
 

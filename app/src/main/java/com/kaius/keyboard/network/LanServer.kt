@@ -123,7 +123,21 @@ class LanServer(private val scope: CoroutineScope) {
                     }
                 }
 
+                LanProtocol.ACTION_SET_TELEX -> {
+                    val enabled = json.optInt("tx", 1) == 1 || json.optBoolean("enabled", true)
+                    LanBridge.isTelexEnabled = enabled
+                    LanBridge.onTelexChanged?.invoke(enabled)
+                }
+
                 LanProtocol.ACTION_KEY_DOWN, LanProtocol.ACTION_KEY_UP, LanProtocol.ACTION_KEY_TAP -> {
+                    if (json.has("tx")) {
+                        val enabled = json.optInt("tx", 1) == 1
+                        if (LanBridge.isTelexEnabled != enabled) {
+                            LanBridge.isTelexEnabled = enabled
+                            LanBridge.onTelexChanged?.invoke(enabled)
+                        }
+                    }
+
                     val code = json.optInt("k", 0).toByte()
                     val mod = json.optInt("m", 0).toByte()
                     val keyName = getKeyName(code)

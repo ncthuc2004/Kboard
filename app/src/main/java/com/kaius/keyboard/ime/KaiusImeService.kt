@@ -29,7 +29,7 @@ class KaiusImeService : InputMethodService() {
     private var socket: DatagramSocket? = null
 
     private var statusView: TextView? = null
-    private var telexToggleBtn: Button? = null
+    private var telexIndicator: TextView? = null
 
     private var currentWord: String = ""
     private var isTelexEnabled: Boolean = true
@@ -44,6 +44,14 @@ class KaiusImeService : InputMethodService() {
             }
         }
 
+        LanBridge.onTelexChanged = { enabled ->
+            scope.launch(Dispatchers.Main) {
+                isTelexEnabled = enabled
+                currentWord = ""
+                updateTelexBadge()
+            }
+        }
+
         // 2. Also run standalone UDP listener for when Kaius App is closed
         startStandaloneListener()
     }
@@ -51,6 +59,8 @@ class KaiusImeService : InputMethodService() {
     override fun onStartInputView(info: android.view.inputmethod.EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         currentWord = ""
+        isTelexEnabled = LanBridge.isTelexEnabled
+        updateTelexBadge()
         updateStatus("Sẵn sàng nhận phím")
     }
 
@@ -75,32 +85,30 @@ class KaiusImeService : InputMethodService() {
         }
         root.addView(statusView)
 
-        // Telex Toggle Button
-        telexToggleBtn = Button(this).apply {
+        // Sleek language mode indicator badge (controlled from keyboard, not toggled here)
+        telexIndicator = TextView(this).apply {
             textSize = 10f
-            setPadding(16, 4, 16, 4)
-            updateTelexButtonUI(this)
-            setOnClickListener {
-                isTelexEnabled = !isTelexEnabled
-                currentWord = ""
-                updateTelexButtonUI(this)
-            }
+            gravity = Gravity.CENTER
+            setPadding(12, 4, 12, 4)
+            updateTelexBadge()
         }
-        root.addView(telexToggleBtn)
+        root.addView(telexIndicator)
 
         return root
     }
 
-    private fun updateTelexButtonUI(btn: Button) {
-        btn.text = if (isTelexEnabled) "Telex: BẬT" else "Telex: TẮT"
-        val bg = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = 8f
-            setColor(if (isTelexEnabled) 0xFF1B3A4B.toInt() else 0xFF222634.toInt())
-            setStroke(1, if (isTelexEnabled) 0xFF00E5FF.toInt() else 0xFF444D66.toInt())
+    private fun updateTelexBadge() {
+        telexIndicator?.apply {
+            text = if (isTelexEnabled) "VI" else "EN"
+            val bg = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6f
+                setColor(if (isTelexEnabled) 0xFF1B3A4B.toInt() else 0xFF222634.toInt())
+                setStroke(1, if (isTelexEnabled) 0xFF00E5FF.toInt() else 0xFF444D66.toInt())
+            }
+            background = bg
+            setTextColor(if (isTelexEnabled) 0xFF00E5FF.toInt() else 0xFF8E99B3.toInt())
         }
-        btn.background = bg
-        btn.setTextColor(if (isTelexEnabled) 0xFF00E5FF.toInt() else 0xFF8E99B3.toInt())
     }
 
     private fun updateStatus(msg: String) {
@@ -126,7 +134,23 @@ class KaiusImeService : InputMethodService() {
 
                     val json = JSONObject(jsonStr)
                     val action = json.optString("a", "")
-                    if (action == LanProtocol.ACTION_KEY_DOWN) {
+                    if (action == LanProtocol.ACTION_SET_TELEX) {
+                        val enabled = json.optInt("tx", 1) == 1 || json.optBoolean("enabled", true)
+                        scope.launch(Dispatchers.Main) {
+                            isTelexEnabled = enabled
+                            currentWord = ""
+                            updateTelexBadge()
+                        }
+                    } else if (action == LanProtocol.ACTION_KEY_DOWN) {
+                        if (json.has("tx")) {
+                            val enabled = json.optInt("tx", 1) == 1
+                            if (isTelexEnabled != enabled) {
+                                isTelexEnabled = enabled
+                                scope.launch(Dispatchers.Main) {
+                                    updateTelexBadge()
+                                }
+                            }
+                        }
                         val code = json.optInt("k", 0).toByte()
                         val mod = json.optInt("m", 0).toByte()
                         scope.launch(Dispatchers.Main) {
