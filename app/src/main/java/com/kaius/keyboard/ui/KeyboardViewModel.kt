@@ -76,8 +76,41 @@ class KeyboardViewModel(application: Application) : AndroidViewModel(application
     val showPairedDialog: StateFlow<Boolean> = _showPairedDialog.asStateFlow()
 
     private val prefs = application.getSharedPreferences("kboard_settings", android.content.Context.MODE_PRIVATE)
+
+    // Language & Telex
     private val _isTelexEnabled = MutableStateFlow(prefs.getBoolean("is_telex_enabled", true))
     val isTelexEnabled: StateFlow<Boolean> = _isTelexEnabled.asStateFlow()
+
+    // RGB Backlight & Visuals
+    private val _rgbTheme = MutableStateFlow(prefs.getString("rgb_theme", "DARK_INDUSTRIAL") ?: "DARK_INDUSTRIAL")
+    val rgbTheme: StateFlow<String> = _rgbTheme.asStateFlow()
+
+    private val _isReactiveGlow = MutableStateFlow(prefs.getBoolean("reactive_glow", true))
+    val isReactiveGlow: StateFlow<Boolean> = _isReactiveGlow.asStateFlow()
+
+    // Haptics & Sound Feedback
+    private val _isHapticEnabled = MutableStateFlow(prefs.getBoolean("haptic_enabled", true))
+    val isHapticEnabled: StateFlow<Boolean> = _isHapticEnabled.asStateFlow()
+
+    private val _hapticStrength = MutableStateFlow(prefs.getString("haptic_strength", "MEDIUM") ?: "MEDIUM")
+    val hapticStrength: StateFlow<String> = _hapticStrength.asStateFlow()
+
+    private val _isSoundEnabled = MutableStateFlow(prefs.getBoolean("sound_enabled", false))
+    val isSoundEnabled: StateFlow<Boolean> = _isSoundEnabled.asStateFlow()
+
+    // Hardware Key Repeat
+    private val _repeatDelayMs = MutableStateFlow(prefs.getLong("repeat_delay_ms", 380L))
+    val repeatDelayMs: StateFlow<Long> = _repeatDelayMs.asStateFlow()
+
+    private val _repeatIntervalMs = MutableStateFlow(prefs.getLong("repeat_interval_ms", 45L))
+    val repeatIntervalMs: StateFlow<Long> = _repeatIntervalMs.asStateFlow()
+
+    // Settings Modal State
+    private val _showSettingsDialog = MutableStateFlow(false)
+    val showSettingsDialog: StateFlow<Boolean> = _showSettingsDialog.asStateFlow()
+
+    private val _settingsInitialTab = MutableStateFlow(0)
+    val settingsInitialTab: StateFlow<Int> = _settingsInitialTab.asStateFlow()
 
     init {
         val telexOn = _isTelexEnabled.value
@@ -85,6 +118,15 @@ class KeyboardViewModel(application: Application) : AndroidViewModel(application
         transportManager.initialize()
         refreshPairedDevices()
         lanDiscovery.startDiscovery()
+    }
+
+    fun openSettings(tab: Int = 0) {
+        _settingsInitialTab.value = tab
+        _showSettingsDialog.value = true
+    }
+
+    fun closeSettings() {
+        _showSettingsDialog.value = false
     }
 
     fun toggleTelex() {
@@ -95,6 +137,41 @@ class KeyboardViewModel(application: Application) : AndroidViewModel(application
         _isTelexEnabled.value = enabled
         prefs.edit().putBoolean("is_telex_enabled", enabled).apply()
         transportManager.sendTelexConfig(enabled)
+    }
+
+    fun setRgbTheme(themeId: String) {
+        _rgbTheme.value = themeId
+        prefs.edit().putString("rgb_theme", themeId).apply()
+    }
+
+    fun setReactiveGlow(enabled: Boolean) {
+        _isReactiveGlow.value = enabled
+        prefs.edit().putBoolean("reactive_glow", enabled).apply()
+    }
+
+    fun setHapticEnabled(enabled: Boolean) {
+        _isHapticEnabled.value = enabled
+        prefs.edit().putBoolean("haptic_enabled", enabled).apply()
+    }
+
+    fun setHapticStrength(strength: String) {
+        _hapticStrength.value = strength
+        prefs.edit().putString("haptic_strength", strength).apply()
+    }
+
+    fun setSoundEnabled(enabled: Boolean) {
+        _isSoundEnabled.value = enabled
+        prefs.edit().putBoolean("sound_enabled", enabled).apply()
+    }
+
+    fun setRepeatDelayMs(delay: Long) {
+        _repeatDelayMs.value = delay
+        prefs.edit().putLong("repeat_delay_ms", delay).apply()
+    }
+
+    fun setRepeatIntervalMs(interval: Long) {
+        _repeatIntervalMs.value = interval
+        prefs.edit().putLong("repeat_interval_ms", interval).apply()
     }
 
     fun setAppRole(role: AppRole) {
@@ -128,7 +205,8 @@ class KeyboardViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun setShowWifiDialog(show: Boolean) {
-        _showWifiDialog.value = show
+        if (show) openSettings(4)
+        else _showSettingsDialog.value = false
     }
 
     fun setShowPairedDialog(show: Boolean) {

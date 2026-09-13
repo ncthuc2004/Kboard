@@ -23,6 +23,9 @@
     <!-- Keep screen awake so OS power management does not kill background transport -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- Haptic Feedback on Keypress -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <!-- Bluetooth feature declarations -->
     <uses-feature android:name="android.hardware.bluetooth" android:required="true" />
 

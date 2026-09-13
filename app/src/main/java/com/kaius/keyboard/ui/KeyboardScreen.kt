@@ -3,7 +3,13 @@ package com.kaius.keyboard.ui
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
@@ -80,6 +86,7 @@ import com.kaius.keyboard.transport.ConnectionStatus
 import com.kaius.keyboard.transport.TransportMode
 import com.kaius.keyboard.ui.theme.AccentPrimary
 import com.kaius.keyboard.ui.theme.AppBg
+import com.kaius.keyboard.ui.theme.resolveKeyVisualTheme
 import com.kaius.keyboard.ui.theme.KeyActiveAccent
 import com.kaius.keyboard.ui.theme.KeyActiveBg
 import com.kaius.keyboard.ui.theme.KeyModifierBg
@@ -105,12 +112,32 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
     val state by viewModel.transportState.collectAsState()
     val modifiers by viewModel.modifiers.collectAsState()
     val isDiagVisible by viewModel.isDiagnosticsVisible.collectAsState()
-    val showWifiDialog by viewModel.showWifiDialog.collectAsState()
+    val showSettingsDialog by viewModel.showSettingsDialog.collectAsState()
+    val settingsInitialTab by viewModel.settingsInitialTab.collectAsState()
     val showPairedDialog by viewModel.showPairedDialog.collectAsState()
     val pairedDevices by viewModel.pairedDevices.collectAsState()
     val discoveredReceivers by viewModel.discoveredReceivers.collectAsState()
     val isLanScanning by viewModel.isLanScanning.collectAsState()
     val isTelexEnabled by viewModel.isTelexEnabled.collectAsState()
+    val rgbTheme by viewModel.rgbTheme.collectAsState()
+    val isReactiveGlow by viewModel.isReactiveGlow.collectAsState()
+    val isHapticEnabled by viewModel.isHapticEnabled.collectAsState()
+    val hapticStrength by viewModel.hapticStrength.collectAsState()
+    val isSoundEnabled by viewModel.isSoundEnabled.collectAsState()
+    val repeatDelayMs by viewModel.repeatDelayMs.collectAsState()
+    val repeatIntervalMs by viewModel.repeatIntervalMs.collectAsState()
+
+    val runtimeSettings = remember(rgbTheme, isReactiveGlow, isHapticEnabled, hapticStrength, isSoundEnabled, repeatDelayMs, repeatIntervalMs) {
+        KeyboardRuntimeSettings(
+            rgbTheme = rgbTheme,
+            isReactiveGlow = isReactiveGlow,
+            isHapticEnabled = isHapticEnabled,
+            hapticStrength = hapticStrength,
+            isSoundEnabled = isSoundEnabled,
+            repeatDelayMs = repeatDelayMs,
+            repeatIntervalMs = repeatIntervalMs
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -132,7 +159,7 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
                 context.startActivity(discoverableIntent)
             },
             onOpenPairedDevices = { viewModel.setShowPairedDialog(true) },
-            onOpenWifiConfig = { viewModel.setShowWifiDialog(true) },
+            onOpenSettings = { viewModel.openSettings(0) },
             onToggleDiagnostics = { viewModel.toggleDiagnostics() },
             onReRegister = { viewModel.reRegisterHid() }
         )
@@ -148,7 +175,7 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
                     targetPort = state.wifiTargetPort,
                     receivers = discoveredReceivers,
                     isScanning = isLanScanning,
-                    onOpenConfig = { viewModel.setShowWifiDialog(true) },
+                    onOpenConfig = { viewModel.openSettings(4) },
                     onScan = { viewModel.refreshLanDiscovery() },
                     onSelectReceiver = { viewModel.connectToDiscoveredReceiver(it) }
                 )
@@ -176,7 +203,8 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
                     onKeyDown = { viewModel.onKeyDown(it) },
                     onKeyUp = { viewModel.onKeyUp(it) },
                     onKeyTap = { viewModel.onKeyTap(it) },
-                    onToggleModifier = { viewModel.toggleModifier(it) }
+                    onToggleModifier = { viewModel.toggleModifier(it) },
+                    settings = runtimeSettings
                 )
             }
 
@@ -194,16 +222,32 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
         }
     }
 
-    // Keyboard Settings & Wi-Fi LAN Config Dialog
-    if (showWifiDialog) {
+    // Keyboard Settings Dialog (Comprehensive: Language, RGB Themes, Haptics, Speed, LAN)
+    if (showSettingsDialog) {
         KeyboardSettingsDialog(
+            initialTab = settingsInitialTab,
             isTelexEnabled = isTelexEnabled,
             onToggleTelex = { viewModel.toggleTelex() },
+            onSetTelex = { viewModel.setTelexEnabled(it) },
+            rgbTheme = rgbTheme,
+            onSelectRgbTheme = { viewModel.setRgbTheme(it) },
+            isReactiveGlow = isReactiveGlow,
+            onToggleReactiveGlow = { viewModel.setReactiveGlow(it) },
+            isHapticEnabled = isHapticEnabled,
+            onToggleHaptic = { viewModel.setHapticEnabled(it) },
+            hapticStrength = hapticStrength,
+            onSelectHapticStrength = { viewModel.setHapticStrength(it) },
+            isSoundEnabled = isSoundEnabled,
+            onToggleSound = { viewModel.setSoundEnabled(it) },
+            repeatDelayMs = repeatDelayMs,
+            onSelectRepeatDelay = { viewModel.setRepeatDelayMs(it) },
+            repeatIntervalMs = repeatIntervalMs,
+            onSelectRepeatInterval = { viewModel.setRepeatIntervalMs(it) },
             currentIp = state.wifiTargetIp,
             currentPort = state.wifiTargetPort,
-            onSave = { ip, port -> viewModel.updateWifiTarget(ip, port) },
+            onSaveWifi = { ip, port -> viewModel.updateWifiTarget(ip, port) },
             onPing = { viewModel.sendWifiPing() },
-            onDismiss = { viewModel.setShowWifiDialog(false) }
+            onDismiss = { viewModel.closeSettings() }
         )
     }
 
@@ -228,7 +272,7 @@ fun LandscapeUnifiedHeader(
     onSelectMode: (TransportMode) -> Unit,
     onMakeDiscoverable: () -> Unit,
     onOpenPairedDevices: () -> Unit,
-    onOpenWifiConfig: () -> Unit,
+    onOpenSettings: () -> Unit,
     onToggleDiagnostics: () -> Unit,
     onReRegister: () -> Unit
 ) {
@@ -400,10 +444,11 @@ fun LandscapeUnifiedHeader(
                         IconButton(onClick = onReRegister, modifier = Modifier.size(24.dp)) {
                             Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = KeyTextSubtle, modifier = Modifier.size(15.dp))
                         }
-                    } else {
-                        IconButton(onClick = onOpenWifiConfig, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Default.Settings, contentDescription = "Settings", tint = KeyTextMuted, modifier = Modifier.size(15.dp))
-                        }
+                    }
+
+                    // Settings Button - Always accessible in both Bluetooth and Wi-Fi mode
+                    IconButton(onClick = onOpenSettings, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings", tint = KeyTextMuted, modifier = Modifier.size(15.dp))
                     }
 
                     IconButton(onClick = onToggleDiagnostics, modifier = Modifier.size(24.dp)) {
@@ -613,13 +658,56 @@ fun QuickMacroBar(
     }
 }
 
+data class KeyboardRuntimeSettings(
+    val rgbTheme: String = "DARK_INDUSTRIAL",
+    val isReactiveGlow: Boolean = true,
+    val isHapticEnabled: Boolean = true,
+    val hapticStrength: String = "MEDIUM",
+    val isSoundEnabled: Boolean = false,
+    val repeatDelayMs: Long = 380L,
+    val repeatIntervalMs: Long = 45L
+)
+
+private fun triggerHaptic(context: Context, strength: String) {
+    try {
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+            vibratorManager?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        }
+        if (vibrator?.hasVibrator() == true) {
+            val (duration, amplitude) = when (strength) {
+                "LIGHT" -> Pair(12L, 70)
+                "STRONG" -> Pair(35L, 220)
+                else -> Pair(22L, 140)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(VibrationEffect.createOneShot(duration, amplitude))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(duration)
+            }
+        }
+    } catch (_: Exception) {}
+}
+
+private fun triggerSound(context: Context) {
+    try {
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        audioManager?.playSoundEffect(AudioManager.FX_KEY_CLICK, 0.6f)
+    } catch (_: Exception) {}
+}
+
 @Composable
 fun PcKeyboardLayout(
     activeModifiers: Byte,
     onKeyDown: (Byte) -> Unit,
     onKeyUp: (Byte) -> Unit,
     onKeyTap: (Byte) -> Unit,
-    onToggleModifier: (Byte) -> Unit
+    onToggleModifier: (Byte) -> Unit,
+    settings: KeyboardRuntimeSettings
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -642,7 +730,7 @@ fun PcKeyboardLayout(
             KeyItem("F12", null, HidKeyCodes.KEY_F12),
             KeyItem("Del", null, HidKeyCodes.KEY_DELETE, widthWeight = 1.1f)
         )
-        KeyboardRow(row1, activeModifiers, onKeyDown, onKeyUp, onKeyTap, onToggleModifier, Modifier.weight(0.85f))
+        KeyboardRow(row1, activeModifiers, onKeyDown, onKeyUp, onKeyTap, onToggleModifier, settings, Modifier.weight(0.85f))
 
         // Row 2: Numbers
         val row2 = listOf(
@@ -661,7 +749,7 @@ fun PcKeyboardLayout(
             KeyItem("=", "+", HidKeyCodes.KEY_EQUAL),
             KeyItem("⌫", null, HidKeyCodes.KEY_BACKSPACE, widthWeight = 1.4f)
         )
-        KeyboardRow(row2, activeModifiers, onKeyDown, onKeyUp, onKeyTap, onToggleModifier, Modifier.weight(1f))
+        KeyboardRow(row2, activeModifiers, onKeyDown, onKeyUp, onKeyTap, onToggleModifier, settings, Modifier.weight(1f))
 
         // Row 3: Tab + QWERTY
         val row3 = listOf(
@@ -680,7 +768,7 @@ fun PcKeyboardLayout(
             KeyItem("]", "}", HidKeyCodes.KEY_RIGHT_BRACKET),
             KeyItem("\\", "|", HidKeyCodes.KEY_BACKSLASH, widthWeight = 1f)
         )
-        KeyboardRow(row3, activeModifiers, onKeyDown, onKeyUp, onKeyTap, onToggleModifier, Modifier.weight(1f))
+        KeyboardRow(row3, activeModifiers, onKeyDown, onKeyUp, onKeyTap, onToggleModifier, settings, Modifier.weight(1f))
 
         // Row 4: Caps + ASDF + Enter
         val row4 = listOf(
@@ -698,7 +786,7 @@ fun PcKeyboardLayout(
             KeyItem("'", "\"", HidKeyCodes.KEY_APOSTROPHE),
             KeyItem("Enter", null, HidKeyCodes.KEY_ENTER, widthWeight = 1.6f)
         )
-        KeyboardRow(row4, activeModifiers, onKeyDown, onKeyUp, onKeyTap, onToggleModifier, Modifier.weight(1f))
+        KeyboardRow(row4, activeModifiers, onKeyDown, onKeyUp, onKeyTap, onToggleModifier, settings, Modifier.weight(1f))
 
         // Row 5: Shift + ZXCV + Shift
         val row5 = listOf(
@@ -716,7 +804,7 @@ fun PcKeyboardLayout(
             KeyItem("▲", null, HidKeyCodes.KEY_UP_ARROW, widthWeight = 1f),
             KeyItem("Shift", null, HidKeyCodes.KEY_NONE, isModifier = true, modifierMask = HidKeyCodes.MOD_RIGHT_SHIFT, widthWeight = 1.3f)
         )
-        KeyboardRow(row5, activeModifiers, onKeyDown, onKeyUp, onKeyTap, onToggleModifier, Modifier.weight(1f))
+        KeyboardRow(row5, activeModifiers, onKeyDown, onKeyUp, onKeyTap, onToggleModifier, settings, Modifier.weight(1f))
 
         // Row 6: Bottom Controls + Space + Arrows
         val row6 = listOf(
@@ -730,7 +818,7 @@ fun PcKeyboardLayout(
             KeyItem("►", null, HidKeyCodes.KEY_RIGHT_ARROW, widthWeight = 1f),
             KeyItem("Ctrl", null, HidKeyCodes.KEY_NONE, isModifier = true, modifierMask = HidKeyCodes.MOD_RIGHT_CTRL, widthWeight = 1.1f)
         )
-        KeyboardRow(row6, activeModifiers, onKeyDown, onKeyUp, onKeyTap, onToggleModifier, Modifier.weight(1f))
+        KeyboardRow(row6, activeModifiers, onKeyDown, onKeyUp, onKeyTap, onToggleModifier, settings, Modifier.weight(1f))
     }
 }
 
@@ -742,6 +830,7 @@ fun KeyboardRow(
     onKeyUp: (Byte) -> Unit,
     onKeyTap: (Byte) -> Unit,
     onToggleModifier: (Byte) -> Unit,
+    settings: KeyboardRuntimeSettings,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -756,6 +845,7 @@ fun KeyboardRow(
                 onKeyUp = onKeyUp,
                 onKeyTap = onKeyTap,
                 onToggleModifier = onToggleModifier,
+                settings = settings,
                 modifier = Modifier.weight(key.widthWeight)
             )
         }
@@ -770,33 +860,55 @@ fun KeyButton(
     onKeyUp: (Byte) -> Unit,
     onKeyTap: (Byte) -> Unit,
     onToggleModifier: (Byte) -> Unit,
+    settings: KeyboardRuntimeSettings,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     var isPressed by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+
+    // Dynamic Chroma Hue Transition for RGB_CHROMA theme
+    val chromaTransition = rememberInfiniteTransition(label = "chroma_wave")
+    val chromaHue by chromaTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(4500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "chroma_hue"
+    )
+    val chromaColor = remember(chromaHue) {
+        val hsv = floatArrayOf(chromaHue, 0.75f, 1f)
+        Color(android.graphics.Color.HSVToColor(hsv))
+    }
+
+    val visualTheme = remember(settings.rgbTheme, chromaColor) {
+        resolveKeyVisualTheme(settings.rgbTheme, chromaColor)
+    }
 
     val isModActive = item.isModifier && (activeModifiers.toInt() and item.modifierMask.toInt()) != 0
 
     val bgColor = when {
-        isModActive -> KeyActiveBg
-        isPressed -> KeyNormalPressed
-        item.isModifier -> KeyModifierBg
-        item.keyCode == HidKeyCodes.KEY_ENTER -> KeySpecialBg
-        item.keyCode in listOf(HidKeyCodes.KEY_ESC, HidKeyCodes.KEY_BACKSPACE, HidKeyCodes.KEY_TAB) -> KeySpecialBg
-        else -> KeyNormalBg
+        isModActive -> visualTheme.activeBg
+        isPressed -> visualTheme.pressedBg
+        item.isModifier -> visualTheme.specialBg
+        item.keyCode == HidKeyCodes.KEY_ENTER -> visualTheme.specialBg
+        item.keyCode in listOf(HidKeyCodes.KEY_ESC, HidKeyCodes.KEY_BACKSPACE, HidKeyCodes.KEY_TAB) -> visualTheme.specialBg
+        else -> visualTheme.normalBg
     }
 
     val textColor = when {
-        isModActive -> KeyActiveAccent
-        isPressed -> KeyTextMain
-        item.keyCode == HidKeyCodes.KEY_ENTER -> KeyTextMain
-        else -> KeyTextMain
+        isModActive -> visualTheme.activeAccent
+        isPressed -> Color.White
+        item.keyCode == HidKeyCodes.KEY_ENTER -> Color.White
+        else -> visualTheme.textColor
     }
 
     val borderColor = when {
-        isModActive -> KeyActiveAccent
-        isPressed -> SurfaceBorder
-        else -> SurfaceBorderSubtle
+        isModActive -> visualTheme.activeAccent
+        isPressed -> if (settings.isReactiveGlow) visualTheme.pressedBorder else SurfaceBorder
+        else -> visualTheme.normalBorder
     }
 
     Box(
@@ -805,21 +917,25 @@ fun KeyButton(
             .clip(RoundedCornerShape(4.dp))
             .background(bgColor)
             .border(1.dp, borderColor, RoundedCornerShape(4.dp))
-            .pointerInput(item) {
+            .pointerInput(item, settings) {
                 detectTapGestures(
                     onPress = {
                         if (item.isModifier) {
+                            if (settings.isHapticEnabled) triggerHaptic(context, settings.hapticStrength)
+                            if (settings.isSoundEnabled) triggerSound(context)
                             onToggleModifier(item.modifierMask)
                         } else {
                             isPressed = true
+                            if (settings.isHapticEnabled) triggerHaptic(context, settings.hapticStrength)
+                            if (settings.isSoundEnabled) triggerSound(context)
                             onKeyDown(item.keyCode)
 
-                            // Key Repeat (Đè phím lặp lại mượt mà như phím thật)
+                            // Hardware Key Repeat
                             val repeatJob = coroutineScope.launch {
-                                delay(380)
+                                delay(settings.repeatDelayMs)
                                 while (isActive) {
                                     onKeyDown(item.keyCode)
-                                    delay(45)
+                                    delay(settings.repeatIntervalMs)
                                 }
                             }
 
@@ -910,147 +1026,7 @@ fun DiagnosticsConsole(
     }
 }
 
-@Composable
-fun KeyboardSettingsDialog(
-    isTelexEnabled: Boolean,
-    onToggleTelex: () -> Unit,
-    currentIp: String,
-    currentPort: Int,
-    onSave: (String, Int) -> Unit,
-    onPing: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    var ip by remember { mutableStateOf(currentIp) }
-    var port by remember { mutableStateOf(currentPort.toString()) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = SurfaceBar,
-        title = {
-            Text("Cài đặt Bàn phím & Kết nối", color = KeyTextMain, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                // SECTION 1: VIETNAMESE TELEX CONFIGURATION
-                Surface(
-                    color = SurfaceElevated,
-                    shape = RoundedCornerShape(6.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorderSubtle),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onToggleTelex() }
-                            .padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Bộ gõ Tiếng Việt Telex",
-                                color = KeyTextMain,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = if (isTelexEnabled) "Đang BẬT (Tự động bỏ dấu s, f, r, x, j, w, aa, ee...)" else "Đang TẮT (Chế độ gõ tiếng Anh chuẩn)",
-                                color = KeyTextSubtle,
-                                fontSize = 10.sp
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(if (isTelexEnabled) KeyActiveBg else KeySpecialBg)
-                                .border(1.dp, if (isTelexEnabled) AccentPrimary else SurfaceBorderSubtle, RoundedCornerShape(4.dp))
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = if (isTelexEnabled) "Telex: BẬT" else "Telex: TẮT",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isTelexEnabled) AccentPrimary else KeyTextMuted
-                            )
-                        }
-                    }
-                }
-
-                // SECTION 2: WI-FI LAN CONNECTION SETTINGS
-                Text("IP thiết bị nhận (Máy tính hoặc Điện thoại khác):", color = KeyTextMuted, fontSize = 12.sp)
-
-                Text(
-                    text = "Dùng Hotspot Gateway (192.168.43.1)",
-                    color = AccentPrimary,
-                    fontSize = 11.sp,
-                    modifier = Modifier
-                        .clickable { ip = "192.168.43.1" }
-                        .padding(vertical = 2.dp)
-                )
-
-                OutlinedTextField(
-                    value = ip,
-                    onValueChange = { ip = it },
-                    label = { Text("IP Đích", fontSize = 12.sp) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = KeyTextMain,
-                        unfocusedTextColor = KeyTextMain,
-                        focusedBorderColor = AccentPrimary,
-                        unfocusedBorderColor = SurfaceBorderSubtle
-                    ),
-                    singleLine = true
-                )
-
-                OutlinedTextField(
-                    value = port,
-                    onValueChange = { port = it },
-                    label = { Text("Cổng (8964)", fontSize = 12.sp) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = KeyTextMain,
-                        unfocusedTextColor = KeyTextMain,
-                        focusedBorderColor = AccentPrimary,
-                        unfocusedBorderColor = SurfaceBorderSubtle
-                    ),
-                    singleLine = true
-                )
-
-                TextButton(onClick = onPing) {
-                    Text("Gửi gói Ping thử nghiệm", color = KeyTextMuted, fontSize = 11.sp)
-                }
-
-                Spacer(modifier = Modifier.height(2.dp))
-
-                Text(
-                    text = "Kboard v${com.kaius.keyboard.BuildConfig.VERSION_NAME} (Build ${com.kaius.keyboard.BuildConfig.VERSION_CODE})",
-                    color = AccentPrimary,
-                    fontSize = 10.sp,
-                    fontFamily = FontFamily.Monospace,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val p = port.toIntOrNull() ?: 8964
-                    onSave(ip.trim(), p)
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = SurfaceElevated)
-            ) {
-                Text("Lưu kết nối", color = KeyTextMain, fontWeight = FontWeight.SemiBold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Đóng", color = KeyTextSubtle)
-            }
-        }
-    )
-}
 
 @SuppressLint("MissingPermission")
 @Composable
