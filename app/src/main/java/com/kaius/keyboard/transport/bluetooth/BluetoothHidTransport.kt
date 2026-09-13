@@ -315,11 +315,11 @@ class BluetoothHidTransport(
             }
 
             if (!success) {
-                log("[LỖI] registerApp trả về FALSE. Bản ROM MIUI có thể đã vô hiệu hóa cổng Bluetooth HID Device.", isError = true)
+                log("[LỖI] registerApp trả về FALSE. Thiết bị hoặc bản ROM có thể đã vô hiệu hóa cổng Bluetooth HID Device.", isError = true)
                 _state.update {
                     it.copy(
                         status = ConnectionStatus.FAILED,
-                        statusMessage = "MIUI chặn Bluetooth HID. Hãy dùng tab [Wi-Fi LAN]!"
+                        statusMessage = "Thiết bị không hỗ trợ Bluetooth HID. Hãy dùng tab [Wi-Fi LAN]!"
                     )
                 }
             } else {

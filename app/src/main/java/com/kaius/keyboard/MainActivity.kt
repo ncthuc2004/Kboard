@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Keep screen on to prevent MIUI 12.5 battery optimization from unregistering HID profile
+        // Keep screen on to prevent battery optimization from unregistering HID profile
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         // Immersive sticky fullscreen for full horizontal keyboard real estate
@@ -53,7 +53,6 @@ class MainActivity : ComponentActivity() {
         val permissionsToRequest = mutableListOf<String>()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // Android 12+ (API 31+)
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                 permissionsToRequest.add(Manifest.permission.BLUETOOTH_CONNECT)
             }
@@ -64,7 +63,7 @@ class MainActivity : ComponentActivity() {
                 permissionsToRequest.add(Manifest.permission.BLUETOOTH_SCAN)
             }
         } else {
-            // Android 11 and below (Redmi 10 is API 30)
+            // Android 11 and below (API <= 30)
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
             }

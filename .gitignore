@@ -11,3 +11,5 @@
 *.exe
 app/build/
 build/
+dist/
+*.spec

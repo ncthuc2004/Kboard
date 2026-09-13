@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Bluetooth Permissions for Android 11 and below (Redmi 10 is API 30) -->
+    <!-- Bluetooth Permissions for Android 11 and below (API <= 30) -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
@@ -20,7 +20,7 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
-    <!-- Keep screen awake so MIUI does not kill the HID service -->
+    <!-- Keep screen awake so OS power management does not kill background transport -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!-- Bluetooth feature declarations -->

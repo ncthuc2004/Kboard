@@ -856,7 +856,7 @@ fun WifiConfigDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("IP thiết bị nhận (Redmi Turbo 4 hoặc Laptop):", color = KeyTextMuted, fontSize = 12.sp)
+                Text("IP thiết bị nhận (Máy tính hoặc Điện thoại khác):", color = KeyTextMuted, fontSize = 12.sp)
 
                 Text(
                     text = "Dùng Hotspot Gateway (192.168.43.1)",
@@ -983,7 +983,7 @@ fun PairedDevicesDialog(
 
                 if (devices.isEmpty()) {
                     Text(
-                        "Chưa có thiết bị nào được ghép đôi.\n\nMẹo: Bấm 'Cài đặt Bluetooth máy' ở trên để ghép đôi với Laptop trước. Sau khi ghép đôi, quay lại đây bấm vào tên Laptop để kết nối ngay!",
+                        "Chưa có thiết bị nào được ghép đôi.\n\nMẹo: Bấm 'Cài đặt Bluetooth máy' ở trên để ghép đôi trước. Sau khi ghép đôi, quay lại đây bấm vào tên thiết bị để kết nối ngay!",
                         color = KeyTextSubtle,
                         fontSize = 11.sp,
                         lineHeight = 16.sp

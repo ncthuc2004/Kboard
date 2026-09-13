@@ -10,4 +10,4 @@ python pc_receiver.py
 ```
 
 Khi chạy, script sẽ in ra địa chỉ IP của máy tính (ví dụ: `192.168.1.15:8964`).
-Chỉ cần nhập IP này vào app trên điện thoại Redmi 10 (trong mục Cài đặt Wi-Fi), mọi thao tác gõ phím trên điện thoại sẽ được gửi thẳng tới máy tính với độ trễ cực thấp.
+Chỉ cần kết nối qua app Kaius Keyboard (tự động phát hiện qua nút [Quét LAN] hoặc nhập IP thủ công), mọi thao tác gõ phím trên điện thoại sẽ được gửi thẳng tới máy tính với độ trễ cực thấp.

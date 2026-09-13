@@ -166,7 +166,7 @@ def main():
     print("=" * 60)
     print("  KAIUS KEYBOARD - WI-FI LAN RECEIVER")
     print(f"  Listening on: {ip}:{PORT}")
-    print("  Enter this IP in your Redmi 10 app to connect.")
+    print("  Enter this IP in your Kaius Keyboard app to connect.")
     print("=" * 60)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
