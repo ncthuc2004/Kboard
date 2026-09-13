@@ -235,14 +235,24 @@ fun LandscapeUnifiedHeader(
         ) {
             // LEFT: Brand + Role Switcher (Bàn phím | Nhận phím)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "KAIUS",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = KeyTextMain,
-                    letterSpacing = 1.sp,
-                    fontFamily = FontFamily.Monospace
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "KAIUS",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = KeyTextMain,
+                        letterSpacing = 1.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        text = "v${com.kaius.keyboard.BuildConfig.VERSION_NAME}",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AccentPrimary,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
 
                 Spacer(modifier = Modifier.width(8.dp))
 

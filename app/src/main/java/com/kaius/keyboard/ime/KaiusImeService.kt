@@ -68,7 +68,7 @@ class KaiusImeService : InputMethodService() {
         }
 
         statusView = TextView(this).apply {
-            text = "⌨️ Kaius LAN: Sẵn sàng nhận phím"
+            text = "⌨️ Kaius v${com.kaius.keyboard.BuildConfig.VERSION_NAME}: Sẵn sàng nhận phím"
             setTextColor(0xFF00E5FF.toInt())
             textSize = 11f
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
@@ -104,7 +104,7 @@ class KaiusImeService : InputMethodService() {
     }
 
     private fun updateStatus(msg: String) {
-        statusView?.text = "⌨️ Kaius LAN: $msg"
+        statusView?.text = "⌨️ Kaius v${com.kaius.keyboard.BuildConfig.VERSION_NAME} | $msg"
     }
 
     private fun startStandaloneListener() {
