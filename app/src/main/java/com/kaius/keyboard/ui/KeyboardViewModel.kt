@@ -59,6 +59,7 @@ class KeyboardViewModel(application: Application) : AndroidViewModel(application
 
     val receiverState: StateFlow<ReceiverState> = lanServer.state
     val discoveredReceivers: StateFlow<List<DiscoveredReceiver>> = lanDiscovery.discoveredReceivers
+    val isLanScanning: StateFlow<Boolean> = lanDiscovery.isScanning
 
     val modifiers: StateFlow<Byte> = inputEngine.modifiers
 
@@ -99,18 +100,23 @@ class KeyboardViewModel(application: Application) : AndroidViewModel(application
     fun setAppRole(role: AppRole) {
         _appRole.value = role
         if (role == AppRole.RECEIVER) {
+            lanDiscovery.stopDiscovery()
             lanServer.start()
         } else {
             lanServer.stop()
-            lanDiscovery.startDiscovery()
+            lanDiscovery.refreshScan()
         }
     }
 
     fun switchMode(mode: TransportMode) {
         transportManager.setMode(mode)
         if (mode == TransportMode.WIFI_LAN) {
-            lanDiscovery.startDiscovery()
+            lanDiscovery.refreshScan()
         }
+    }
+
+    fun refreshLanDiscovery() {
+        lanDiscovery.refreshScan()
     }
 
     fun connectToDiscoveredReceiver(receiver: DiscoveredReceiver) {

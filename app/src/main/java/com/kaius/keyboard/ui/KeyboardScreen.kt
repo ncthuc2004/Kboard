@@ -6,6 +6,12 @@ import android.bluetooth.BluetoothDevice
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
@@ -59,6 +65,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
@@ -102,6 +109,7 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
     val showPairedDialog by viewModel.showPairedDialog.collectAsState()
     val pairedDevices by viewModel.pairedDevices.collectAsState()
     val discoveredReceivers by viewModel.discoveredReceivers.collectAsState()
+    val isLanScanning by viewModel.isLanScanning.collectAsState()
     val isTelexEnabled by viewModel.isTelexEnabled.collectAsState()
 
     Column(
@@ -139,8 +147,9 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
                     targetIp = state.wifiTargetIp,
                     targetPort = state.wifiTargetPort,
                     receivers = discoveredReceivers,
+                    isScanning = isLanScanning,
                     onOpenConfig = { viewModel.setShowWifiDialog(true) },
-                    onScan = { viewModel.lanDiscovery.startDiscovery() },
+                    onScan = { viewModel.refreshLanDiscovery() },
                     onSelectReceiver = { viewModel.connectToDiscoveredReceiver(it) }
                 )
             }
@@ -411,10 +420,22 @@ fun LanConnectionBar(
     targetIp: String,
     targetPort: Int,
     receivers: List<DiscoveredReceiver>,
+    isScanning: Boolean = false,
     onOpenConfig: () -> Unit,
     onScan: () -> Unit,
     onSelectReceiver: (DiscoveredReceiver) -> Unit
 ) {
+    val scanTransition = rememberInfiniteTransition(label = "scan_spin")
+    val scanAngle by scanTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "scan_angle"
+    )
+
     Surface(
         color = SurfaceBar,
         shape = RoundedCornerShape(4.dp),
@@ -457,14 +478,14 @@ fun LanConnectionBar(
 
             Spacer(modifier = Modifier.width(6.dp))
 
-            // CENTER: Discovered devices or notice
+            // CENTER: Active discovered devices or status notice
             if (receivers.isNotEmpty()) {
                 LazyRow(
                     modifier = Modifier.weight(1f),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    items(receivers) { rcv ->
+                    items(receivers, key = { it.ip }) { rcv ->
                         val isCurrent = rcv.ip == targetIp
                         Text(
                             text = "${rcv.name} (${rcv.ip})",
@@ -481,14 +502,16 @@ fun LanConnectionBar(
                 }
             } else {
                 Text(
-                    text = "Bấm [Đổi IP] hoặc [Quét LAN] để kết nối",
+                    text = if (isScanning) "Đang tìm máy nhận trong mạng LAN..." else "Chưa thấy máy nhận - Bấm [Quét LAN]",
                     fontSize = 9.sp,
-                    color = KeyTextSubtle,
+                    color = if (isScanning) AccentPrimary else KeyTextSubtle,
                     modifier = Modifier.weight(1f)
                 )
             }
 
-            // RIGHT: Scan button
+            Spacer(modifier = Modifier.width(6.dp))
+
+            // RIGHT: Scan button with spinning indicator while scanning
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -497,9 +520,21 @@ fun LanConnectionBar(
                     .clickable { onScan() }
                     .padding(horizontal = 6.dp, vertical = 2.dp)
             ) {
-                Icon(Icons.Default.Refresh, contentDescription = "Scan", tint = AccentPrimary, modifier = Modifier.size(11.dp))
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Scan",
+                    tint = AccentPrimary,
+                    modifier = Modifier
+                        .size(11.dp)
+                        .graphicsLayer { rotationZ = if (isScanning) scanAngle else 0f }
+                )
                 Spacer(modifier = Modifier.width(3.dp))
-                Text("Quét LAN", fontSize = 9.sp, color = AccentPrimary, fontWeight = FontWeight.Medium)
+                Text(
+                    text = if (isScanning) "Đang quét" else "Quét LAN",
+                    fontSize = 9.sp,
+                    color = AccentPrimary,
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
     }
