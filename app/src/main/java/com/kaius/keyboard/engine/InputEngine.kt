@@ -66,15 +66,21 @@ class InputEngine(
     fun sendMacro(modMask: Byte, keyCode: Byte) {
         scope.launch(Dispatchers.IO) {
             if (keyCode == HidKeyCodes.KEY_NONE) {
-                // Modifier tap (e.g. Win key tap)
+                // Modifier tap (e.g. Win key tap) - fast 15ms
                 transportManager.sendKeyDown(HidKeyCodes.KEY_NONE, modMask)
-                delay(20)
+                delay(15)
                 transportManager.sendKeyUp(HidKeyCodes.KEY_NONE, HidKeyCodes.MOD_NONE)
             } else {
+                // Step 1: Hold modifier down first (matches tapping Ctrl on keyboard)
+                transportManager.sendKeyDown(HidKeyCodes.KEY_NONE, modMask)
+                delay(20)
+                // Step 2: Tap the key while modifier is held down
                 transportManager.sendKeyDown(keyCode, modMask)
-                delay(35)
+                delay(25)
                 transportManager.sendKeyUp(keyCode, modMask)
-                delay(10)
+                delay(15)
+                // Step 3: Release the modifier
+                transportManager.sendKeyUp(HidKeyCodes.KEY_NONE, HidKeyCodes.MOD_NONE)
                 transportManager.sendRawReport(HidKeyCodes.MOD_NONE, byteArrayOf())
             }
         }
