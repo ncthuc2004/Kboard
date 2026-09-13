@@ -6,8 +6,8 @@
     - `versionCode`: Số nguyên tăng dần (+1 mỗi lần build: 1 -> 2 -> 3 -> 4...).
     - `versionName`: Chuẩn Semantic Versioning (ví dụ: `1.0.0` -> `1.1.0` -> `1.1.1`...).
 - **Hiển thị Version trực quan trên giao diện (UI)**:
-  - Header chính (`LandscapeUnifiedHeader`): Luôn hiển thị nhãn phiên bản bên cạnh logo, ví dụ `KAIUS v1.1.0`.
-  - Thanh trạng thái bàn phím ảo (`KaiusImeService`): Hiển thị `⌨️ Kaius v1.1.0` để người dùng xác nhận đúng bản đang chạy trong app clone trên máy nhận.
+  - Header chính (`LandscapeUnifiedHeader`): Luôn hiển thị nhãn phiên bản bên cạnh logo, ví dụ `KAIUS v1.1.1`.
+  - Thanh trạng thái bàn phím ảo (`KaiusImeService`): Hiển thị `Kaius v1.1.1` để người dùng xác nhận đúng bản đang chạy trong app clone trên máy nhận.
 - **Xuất APK ra thư mục gốc**:
   - Sau khi build thành công `./gradlew assembleDebug`, luôn sao chép file APK từ `app/build/outputs/apk/debug/app-debug.apk` ra thư mục gốc: `t:\Kaius_Inc\K_Keyboard\Kaius_Keyboard.apk`.
 
@@ -25,5 +25,5 @@
   - Nhấn giữ quá 380ms sẽ tự động lặp ký tự liên tục chu kỳ 45ms (~22 ký tự/giây) như phím vật lý.
 - **Bộ gõ Tiếng Việt Telex tích hợp**:
   - `VietnameseTelexEngine` xử lý dấu tự nhiên trực tiếp trong `KaiusImeService` cho máy nhận mà không cần cài thêm bàn phím bên thứ 3.
-- **Không dùng AI Slop**:
-  - Giữ phong cách cơ học tối giản, màu sắc công nghệ dark mode sắc nét, không dùng gradient lòe loẹt hoặc icon placeholder giả.
+- **Nghiêm cấm dùng icon Emoji (🔍, ⌨️, 🖥️, ⚡, 🇻🇳...)**:
+  - Toàn bộ giao diện người dùng, thanh trạng thái, nút bấm và tài liệu phải giữ phong cách công nghệ cơ học tối giản (Minimalist Industrial/Cyberpunk), dùng nhãn chữ rõ ràng hoặc Material Vector Icons, tuyệt đối không dùng emoji hình vẽ.

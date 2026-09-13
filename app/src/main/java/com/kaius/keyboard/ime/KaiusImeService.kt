@@ -68,7 +68,7 @@ class KaiusImeService : InputMethodService() {
         }
 
         statusView = TextView(this).apply {
-            text = "⌨️ Kaius v${com.kaius.keyboard.BuildConfig.VERSION_NAME}: Sẵn sàng nhận phím"
+            text = "Kaius v${com.kaius.keyboard.BuildConfig.VERSION_NAME}: Sẵn sàng nhận phím"
             setTextColor(0xFF00E5FF.toInt())
             textSize = 11f
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
@@ -92,7 +92,7 @@ class KaiusImeService : InputMethodService() {
     }
 
     private fun updateTelexButtonUI(btn: Button) {
-        btn.text = if (isTelexEnabled) "🇻🇳 Tiếng Việt: BẬT" else "🇺🇸 English"
+        btn.text = if (isTelexEnabled) "Telex: BẬT" else "Telex: TẮT"
         val bg = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = 8f
@@ -104,7 +104,7 @@ class KaiusImeService : InputMethodService() {
     }
 
     private fun updateStatus(msg: String) {
-        statusView?.text = "⌨️ Kaius v${com.kaius.keyboard.BuildConfig.VERSION_NAME} | $msg"
+        statusView?.text = "Kaius v${com.kaius.keyboard.BuildConfig.VERSION_NAME} | $msg"
     }
 
     private fun startStandaloneListener() {
@@ -153,38 +153,38 @@ class KaiusImeService : InputMethodService() {
                 HidKeyCodes.KEY_C -> {
                     ic.performContextMenuAction(android.R.id.copy)
                     sendMetaKeyEvent(ic, KeyEvent.KEYCODE_C, mod)
-                    updateStatus("📋 Đã Copy (Ctrl+C)")
+                    updateStatus("Copy [Ctrl+C]")
                     return
                 }
                 HidKeyCodes.KEY_V -> {
                     ic.performContextMenuAction(android.R.id.paste)
                     sendMetaKeyEvent(ic, KeyEvent.KEYCODE_V, mod)
-                    updateStatus("📋 Đã Paste (Ctrl+V)")
+                    updateStatus("Paste [Ctrl+V]")
                     return
                 }
                 HidKeyCodes.KEY_A -> {
                     ic.performContextMenuAction(android.R.id.selectAll)
                     sendMetaKeyEvent(ic, KeyEvent.KEYCODE_A, mod)
-                    updateStatus("🔍 Chọn tất cả (Ctrl+A)")
+                    updateStatus("Select All [Ctrl+A]")
                     return
                 }
                 HidKeyCodes.KEY_X -> {
                     ic.performContextMenuAction(android.R.id.cut)
                     sendMetaKeyEvent(ic, KeyEvent.KEYCODE_X, mod)
-                    updateStatus("✂️ Đã Cắt (Ctrl+X)")
+                    updateStatus("Cut [Ctrl+X]")
                     return
                 }
                 HidKeyCodes.KEY_Z -> {
                     ic.performContextMenuAction(android.R.id.undo)
                     sendMetaKeyEvent(ic, KeyEvent.KEYCODE_Z, mod)
-                    updateStatus("↩️ Hoàn tác (Ctrl+Z)")
+                    updateStatus("Undo [Ctrl+Z]")
                     return
                 }
                 else -> {
                     val androidKey = getAndroidKeyCode(code)
                     if (androidKey != KeyEvent.KEYCODE_UNKNOWN) {
                         sendMetaKeyEvent(ic, androidKey, mod)
-                        updateStatus("Phím tắt: Ctrl+$androidKey")
+                        updateStatus("Ctrl+Key($code)")
                         return
                     }
                 }
@@ -209,24 +209,24 @@ class KaiusImeService : InputMethodService() {
                 }
                 ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
                 ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL))
-                updateStatus("⌫ Xóa")
+                updateStatus("Backspace")
             }
             HidKeyCodes.KEY_DELETE -> {
                 currentWord = ""
                 ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_FORWARD_DEL))
                 ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_FORWARD_DEL))
-                updateStatus("⌦ Xóa tiến (Delete)")
+                updateStatus("Delete")
             }
             HidKeyCodes.KEY_ENTER -> {
                 currentWord = ""
                 ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
                 ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
-                updateStatus("↵ Xuống dòng")
+                updateStatus("Enter")
             }
             HidKeyCodes.KEY_SPACE -> {
                 currentWord = ""
                 ic.commitText(" ", 1)
-                updateStatus("␣ Dấu cách")
+                updateStatus("Space")
             }
             HidKeyCodes.KEY_TAB -> {
                 currentWord = ""

@@ -435,7 +435,7 @@ fun LanConnectionBar(
                     .padding(horizontal = 6.dp, vertical = 2.dp)
             ) {
                 Text(
-                    text = "🔗 Gửi tới: $targetIp:$targetPort",
+                    text = "Gửi tới: $targetIp:$targetPort",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = AccentPrimary,
@@ -462,7 +462,7 @@ fun LanConnectionBar(
                     items(receivers) { rcv ->
                         val isCurrent = rcv.ip == targetIp
                         Text(
-                            text = "⚡ ${rcv.name} (${rcv.ip})",
+                            text = "${rcv.name} (${rcv.ip})",
                             fontSize = 9.sp,
                             fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
                             color = if (isCurrent) StatusSuccess else KeyTextMain,
@@ -961,7 +961,7 @@ fun PairedDevicesDialog(
                         modifier = Modifier.weight(1f).height(32.dp),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 0.dp)
                     ) {
-                        Text("📡 Cho máy khác thấy (300s)", color = KeyTextMain, fontSize = 10.sp)
+                        Text("Cho máy khác thấy (300s)", color = KeyTextMain, fontSize = 10.sp)
                     }
 
                     Button(
@@ -977,13 +977,13 @@ fun PairedDevicesDialog(
                         modifier = Modifier.weight(1f).height(32.dp),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 0.dp)
                     ) {
-                        Text("⚙️ Cài đặt Bluetooth máy", color = KeyTextMain, fontSize = 10.sp)
+                        Text("Cài đặt Bluetooth máy", color = KeyTextMain, fontSize = 10.sp)
                     }
                 }
 
                 if (devices.isEmpty()) {
                     Text(
-                        "Chưa có thiết bị nào được ghép đôi.\n\n💡 Mẹo: Bấm 'Cài đặt Bluetooth máy' ở trên để ghép đôi với Laptop trước. Sau khi ghép đôi, quay lại đây bấm vào tên Laptop để kết nối ngay!",
+                        "Chưa có thiết bị nào được ghép đôi.\n\nMẹo: Bấm 'Cài đặt Bluetooth máy' ở trên để ghép đôi với Laptop trước. Sau khi ghép đôi, quay lại đây bấm vào tên Laptop để kết nối ngay!",
                         color = KeyTextSubtle,
                         fontSize = 11.sp,
                         lineHeight = 16.sp

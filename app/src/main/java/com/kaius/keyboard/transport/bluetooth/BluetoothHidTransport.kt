@@ -315,7 +315,7 @@ class BluetoothHidTransport(
             }
 
             if (!success) {
-                log("⚠️ registerApp trả về FALSE. Bản ROM MIUI có thể đã vô hiệu hóa cổng Bluetooth HID Device.", isError = true)
+                log("[LỖI] registerApp trả về FALSE. Bản ROM MIUI có thể đã vô hiệu hóa cổng Bluetooth HID Device.", isError = true)
                 _state.update {
                     it.copy(
                         status = ConnectionStatus.FAILED,
