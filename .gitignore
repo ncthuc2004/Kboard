@@ -8,5 +8,6 @@
 .externalNativeBuild
 .cxx
 *.apk
+*.exe
 app/build/
 build/
