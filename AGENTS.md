@@ -1,15 +1,21 @@
-# Project Rules & Guidelines - Kaius Keyboard
+# Project Rules & Guidelines - Kboard (Kaius Keyboard)
 
-## 1. App Versioning & Release (BẮT BUỘC)
+## 1. App Versioning & Dedicated Release Directory (BẮT BUỘC)
 - **Luôn tăng version khi build bản mới**:
   - Mỗi khi thay đổi code, sửa lỗi hoặc thêm tính năng và xuất file APK cho người dùng, **BẮT BUỘC** phải tăng `versionCode` và `versionName` trong file [build.gradle.kts](file:///t:/Kaius_Inc/K_Keyboard/app/build.gradle.kts):
-    - `versionCode`: Số nguyên tăng dần (+1 mỗi lần build: 1 -> 2 -> 3 -> 4...).
-    - `versionName`: Chuẩn Semantic Versioning (ví dụ: `1.0.0` -> `1.1.0` -> `1.1.1`...).
+    - `versionCode`: Số nguyên tăng dần (+1 mỗi lần build: 1 -> 2 -> 3 -> 4 -> 5 -> 6...).
+    - `versionName`: Chuẩn Semantic Versioning (ví dụ: `1.0.0` -> `1.1.0` -> `1.1.4`...).
+- **Mỗi phiên bản một thư mục riêng biệt (`releases/v<versionName>/`)**:
+  - Người dùng yêu cầu nghiêm ngặt: **Từ bản v1.1.4 về sau, mỗi version mới phát hành phải được lưu trữ trong một thư mục riêng biệt** `releases/v<versionName>/` (ví dụ: `releases/v1.1.4/`).
+  - Trong thư mục của từng phiên bản phải chứa đầy đủ:
+    1. `Kboard_v<versionName>.apk` (file APK gắn tag phiên bản).
+    2. `Kboard.apk` (file APK chuẩn).
+    3. `Kaius_Receiver.exe` (bộ nhận Windows đồng bộ).
+    4. `RELEASE_NOTES.md` (tóm tắt các thay đổi của phiên bản).
+  - Vẫn duy trì file APK ở thư mục gốc (`Kboard.apk` và `Kaius_Keyboard.apk`) để người dùng tải nhanh.
 - **Hiển thị Version trực quan trên giao diện (UI)**:
-  - Header chính (`LandscapeUnifiedHeader`): Luôn hiển thị nhãn phiên bản bên cạnh logo, ví dụ `KAIUS v1.1.1`.
-  - Thanh trạng thái bàn phím ảo (`KaiusImeService`): Hiển thị `Kaius v1.1.1` để người dùng xác nhận đúng bản đang chạy trong app clone trên máy nhận.
-- **Xuất APK ra thư mục gốc**:
-  - Sau khi build thành công `./gradlew assembleDebug`, luôn sao chép file APK từ `app/build/outputs/apk/debug/app-debug.apk` ra thư mục gốc: `t:\Kaius_Inc\K_Keyboard\Kaius_Keyboard.apk`.
+  - Header chính (`LandscapeUnifiedHeader`): Luôn hiển thị nhãn phiên bản bên cạnh logo, ví dụ `KBOARD v1.1.4`.
+  - Thanh trạng thái bàn phím ảo (`KaiusImeService`): Hiển thị `Kboard v1.1.4` để người dùng xác nhận đúng bản đang chạy trong app clone trên máy nhận.
 
 ## 2. Quản lý Git Local
 - **Commit Git sau mỗi tác vụ**:
