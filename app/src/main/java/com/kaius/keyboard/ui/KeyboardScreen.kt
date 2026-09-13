@@ -1081,6 +1081,30 @@ fun PairedDevicesDialog(
                     }
                 }
 
+                // Helpful guidance banner for Windows/Laptop users
+                Surface(
+                    color = KeySpecialBg,
+                    shape = RoundedCornerShape(4.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorderSubtle),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(6.dp)) {
+                        Text(
+                            text = "Lưu ý khi kết nối Laptop / PC:",
+                            color = AccentPrimary,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "1. Nếu Laptop đã từng ghép đôi trước đó: Hãy vào Laptop xóa thiết bị cũ (Remove device).\n2. Bấm nút [Cho máy khác thấy] ở trên.\n3. Trên Laptop: Bấm 'Add device' -> Bluetooth -> Chọn 'Kboard' (biểu tượng bàn phím).",
+                            color = KeyTextSubtle,
+                            fontSize = 9.sp,
+                            lineHeight = 13.sp
+                        )
+                    }
+                }
+
                 if (devices.isEmpty()) {
                     Text(
                         "Chưa có thiết bị nào được ghép đôi.\n\nMẹo: Bấm 'Cài đặt Bluetooth máy' ở trên để ghép đôi trước. Sau khi ghép đôi, quay lại đây bấm vào tên thiết bị để kết nối ngay!",

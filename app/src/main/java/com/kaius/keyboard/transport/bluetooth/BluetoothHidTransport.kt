@@ -174,7 +174,11 @@ class BluetoothHidTransport(
                     log("Đang ngắt kết nối với $devName...")
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
+                    val wasConnecting = _state.value.status == ConnectionStatus.CONNECTING
                     log("Đã ngắt kết nối với $devName")
+                    if (wasConnecting) {
+                        log("Host từ chối kênh HID hoặc timeout. Mẹo: Trên Laptop hãy Xóa thiết bị cũ (Remove device), rồi bấm icon [Kính lúp] và kết nối TỪ LAPTOP (Add device)!", isError = true)
+                    }
                     if (connectedDevice?.address == device.address) {
                         connectedDevice = null
                     }
@@ -267,9 +271,9 @@ class BluetoothHidTransport(
         }
 
         val sdp = BluetoothHidDeviceAppSdpSettings(
-            "Kaius Keyboard",
-            "Kaius Bluetooth HID Keyboard",
-            "Kaius Inc",
+            "Kboard",
+            "Kboard Bluetooth Wireless Keyboard",
+            "Kboard",
             SUBCLASS_KEYBOARD,
             KEYBOARD_REPORT_DESCRIPTOR
         )
