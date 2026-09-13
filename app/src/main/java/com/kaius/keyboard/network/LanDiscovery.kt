@@ -151,19 +151,44 @@ class LanDiscovery(private val scope: CoroutineScope) {
                 sock.send(DatagramPacket(data, data.size, globalBroadcast, LanProtocol.PORT))
             } catch (_: Exception) {}
 
-            // 2. Broadcast on each interface's specific broadcast address
-            val interfaces = NetworkInterface.getNetworkInterfaces() ?: return
-            while (interfaces.hasMoreElements()) {
-                val iface = interfaces.nextElement()
-                if (iface.isLoopback || !iface.isUp) continue
-                for (interfaceAddress in iface.interfaceAddresses) {
-                    val broadcast = interfaceAddress.broadcast
-                    if (broadcast != null) {
-                        try {
-                            sock.send(DatagramPacket(data, data.size, broadcast, LanProtocol.PORT))
-                        } catch (_: Exception) {}
+            // Direct unicast targets (Hotspot gateways & routers where UDP broadcast is blocked by Android kernel)
+            val unicastTargets = mutableSetOf(
+                "192.168.43.1",   // Standard Android Hotspot Gateway
+                "192.168.137.1",  // Windows Mobile Hotspot Gateway
+                "192.168.49.1"    // Android Wi-Fi Direct Group Owner
+            )
+
+            // 2. Broadcast on each interface's specific broadcast address & collect subnet gateways
+            val interfaces = NetworkInterface.getNetworkInterfaces()
+            if (interfaces != null) {
+                while (interfaces.hasMoreElements()) {
+                    val iface = interfaces.nextElement()
+                    if (iface.isLoopback || !iface.isUp) continue
+                    for (interfaceAddress in iface.interfaceAddresses) {
+                        val broadcast = interfaceAddress.broadcast
+                        if (broadcast != null) {
+                            try {
+                                sock.send(DatagramPacket(data, data.size, broadcast, LanProtocol.PORT))
+                            } catch (_: Exception) {}
+                        }
+                        // Add subnet router/gateway (x.x.x.1)
+                        val host = interfaceAddress.address?.hostAddress
+                        if (host != null && host.contains(".") && !host.startsWith("127.")) {
+                            val lastDot = host.lastIndexOf('.')
+                            if (lastDot > 0) {
+                                unicastTargets.add(host.substring(0, lastDot) + ".1")
+                            }
+                        }
                     }
                 }
+            }
+
+            // 3. Direct Unicast Probes (Crucial for Android Hotspot where SoftAP blocks UDP broadcast)
+            for (targetIp in unicastTargets) {
+                try {
+                    val targetAddr = InetAddress.getByName(targetIp)
+                    sock.send(DatagramPacket(data, data.size, targetAddr, LanProtocol.PORT))
+                } catch (_: Exception) {}
             }
         } catch (_: Exception) {}
     }

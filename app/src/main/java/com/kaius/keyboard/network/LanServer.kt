@@ -5,6 +5,7 @@ import com.kaius.keyboard.engine.HidKeyCodes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,6 +16,7 @@ import org.json.JSONObject
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
+import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -48,6 +50,7 @@ class LanServer(private val scope: CoroutineScope) {
 
     private var socket: DatagramSocket? = null
     private var listenJob: Job? = null
+    private var refreshIpJob: Job? = null
     private val timeFormat = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault())
 
     private val _state = MutableStateFlow(ReceiverState())
@@ -64,10 +67,25 @@ class LanServer(private val scope: CoroutineScope) {
             )
         }
 
+        // Periodically refresh IP so that if hotspot or Wi-Fi is enabled after launch, IP updates automatically
+        refreshIpJob?.cancel()
+        refreshIpJob = scope.launch(Dispatchers.IO) {
+            while (isActive) {
+                delay(2500L)
+                val currentIp = getLocalIpAddress()
+                if (currentIp != "127.0.0.1" && currentIp != _state.value.localIp) {
+                    _state.update { it.copy(localIp = currentIp) }
+                }
+            }
+        }
+
         listenJob = scope.launch(Dispatchers.IO) {
             try {
-                val sock = DatagramSocket(LanProtocol.PORT)
-                sock.reuseAddress = true
+                // Must configure reuseAddress BEFORE binding to prevent BindException with KaiusImeService!
+                val sock = DatagramSocket(null).apply {
+                    reuseAddress = true
+                    bind(InetSocketAddress(LanProtocol.PORT))
+                }
                 socket = sock
 
                 val buffer = ByteArray(2048)
@@ -218,6 +236,8 @@ class LanServer(private val scope: CoroutineScope) {
     fun stop() {
         listenJob?.cancel()
         listenJob = null
+        refreshIpJob?.cancel()
+        refreshIpJob = null
         try {
             socket?.close()
             socket = null
@@ -277,9 +297,11 @@ class LanServer(private val scope: CoroutineScope) {
         }
     }
 
-    private fun getLocalIpAddress(): String {
+    fun getLocalIpAddress(): String {
         try {
-            val interfaces = NetworkInterface.getNetworkInterfaces()
+            val interfaces = NetworkInterface.getNetworkInterfaces() ?: return "127.0.0.1"
+            val ipList = mutableListOf<Pair<String, String>>() // (ifaceName, ip)
+
             while (interfaces.hasMoreElements()) {
                 val iface = interfaces.nextElement()
                 if (iface.isLoopback || !iface.isUp) continue
@@ -287,10 +309,32 @@ class LanServer(private val scope: CoroutineScope) {
                 val addresses = iface.inetAddresses
                 while (addresses.hasMoreElements()) {
                     val addr = addresses.nextElement()
-                    if (!addr.isLoopbackAddress && addr.hostAddress?.contains(":") == false) {
-                        return addr.hostAddress ?: "0.0.0.0"
+                    val ip = addr.hostAddress
+                    if (!addr.isLoopbackAddress && ip != null && !ip.contains(":")) {
+                        ipList.add(Pair(iface.name.lowercase(Locale.ROOT), ip))
                     }
                 }
+            }
+
+            // Priority 1: Exact Android Hotspot Host IP
+            ipList.find { it.second == "192.168.43.1" }?.let { return it.second }
+
+            // Priority 2: Hotspot/AP interfaces (ap*, softap*, swlan*, rndis*)
+            ipList.find { (name, _) ->
+                name.startsWith("ap") || name.startsWith("softap") || name.startsWith("swlan") || name.startsWith("rndis")
+            }?.let { return it.second }
+
+            // Priority 3: Standard Wi-Fi interfaces (wlan*)
+            ipList.find { (name, _) -> name.startsWith("wlan") }?.let { return it.second }
+
+            // Priority 4: Private LAN IPs that are NOT cellular carrier modems (rmnet*, ccmni*, pdp*, dummy*, wwan*)
+            ipList.find { (name, _) ->
+                !name.startsWith("rmnet") && !name.startsWith("ccmni") && !name.startsWith("pdp") && !name.startsWith("dummy") && !name.startsWith("wwan")
+            }?.let { return it.second }
+
+            // Fallback: First non-loopback IPv4
+            if (ipList.isNotEmpty()) {
+                return ipList.first().second
             }
         } catch (_: Exception) {}
         return "127.0.0.1"

@@ -554,6 +554,27 @@ fun LanConnectionBar(
                 )
             }
 
+            if (targetIp != "192.168.43.1") {
+                Spacer(modifier = Modifier.width(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(KeyActiveBg)
+                        .clickable {
+                            onSelectReceiver(DiscoveredReceiver(name = "Hotspot", ip = "192.168.43.1", port = targetPort))
+                        }
+                        .padding(horizontal = 5.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "[Dùng Hotspot]",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = AccentPrimary
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.width(6.dp))
 
             // CENTER: Active discovered devices or status notice

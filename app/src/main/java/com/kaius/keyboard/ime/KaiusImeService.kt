@@ -189,7 +189,18 @@ class KaiusImeService : InputMethodService() {
 
                     val json = JSONObject(jsonStr)
                     val action = json.optString("a", "")
-                    if (action == LanProtocol.ACTION_SET_TELEX) {
+                    if (action == LanProtocol.ACTION_DISCOVER) {
+                        val deviceName = "${android.os.Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${android.os.Build.MODEL}"
+                        val announceJson = JSONObject().apply {
+                            put("a", LanProtocol.ACTION_ANNOUNCE)
+                            put("name", "$deviceName (Kboard IME)")
+                            put("ip", packet.address.hostAddress ?: "")
+                            put("port", LanProtocol.PORT)
+                        }
+                        val respData = announceJson.toString().toByteArray(Charsets.UTF_8)
+                        val respPacket = DatagramPacket(respData, respData.size, packet.address, packet.port)
+                        sock.send(respPacket)
+                    } else if (action == LanProtocol.ACTION_SET_TELEX) {
                         val enabled = json.optInt("tx", 1) == 1 || json.optBoolean("enabled", true)
                         scope.launch(Dispatchers.Main) {
                             isTelexEnabled = enabled
