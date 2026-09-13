@@ -137,6 +137,10 @@ class LanServer(private val scope: CoroutineScope) {
                         senderIp = senderIp
                     )
 
+                    if (action == LanProtocol.ACTION_KEY_DOWN) {
+                        LanBridge.onKeyReceived?.invoke(code, mod)
+                    }
+
                     _state.update { curr ->
                         val updatedKeys = when (action) {
                             LanProtocol.ACTION_KEY_DOWN -> curr.activeKeys + code
