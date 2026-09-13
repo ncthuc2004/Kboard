@@ -10,8 +10,7 @@
      - `Kboard_v<versionName>.apk`
      - `Kboard.apk`
      - `Kaius_Receiver.exe`
-     - `RELEASE_NOTES.md`
-   - Also maintain sync with root `Kboard.apk` and `Kaius_Keyboard.apk`.
+   - Maintain single standardized root APK: `Kboard.apk`.
 
 3. **Display Version in UI**:
    - App version MUST be visible in `LandscapeUnifiedHeader` as `v<versionName>`.

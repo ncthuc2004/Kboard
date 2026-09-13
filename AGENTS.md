@@ -11,8 +11,7 @@
     1. `Kboard_v<versionName>.apk` (file APK gắn tag phiên bản).
     2. `Kboard.apk` (file APK chuẩn).
     3. `Kaius_Receiver.exe` (bộ nhận Windows đồng bộ).
-    4. `RELEASE_NOTES.md` (tóm tắt các thay đổi của phiên bản).
-  - Vẫn duy trì file APK ở thư mục gốc (`Kboard.apk` và `Kaius_Keyboard.apk`) để người dùng tải nhanh.
+  - Duy trì duy nhất file APK chuẩn ở thư mục gốc: `Kboard.apk`.
 - **Hiển thị Version trực quan trên giao diện (UI)**:
   - Header chính (`LandscapeUnifiedHeader`): Luôn hiển thị nhãn phiên bản bên cạnh logo, ví dụ `KBOARD v1.1.4`.
   - Thanh trạng thái bàn phím ảo (`KaiusImeService`): Hiển thị `Kboard v1.1.4` để người dùng xác nhận đúng bản đang chạy trong app clone trên máy nhận.

@@ -10,7 +10,7 @@
 
 **Giải pháp biến điện thoại thông minh thành Bàn phím cơ ảo siêu mượt, độ trễ cực thấp cho Máy tính, Laptop và Điện thoại khác.**
 
-[Tác giả: Nguyễn Công Thức (Kaius)](https://github.com/ncthuc2004) • [Tải APK v1.1.4](file:///t:/Kaius_Inc/K_Keyboard/Kaius_Keyboard.apk) • [Windows Receiver](file:///t:/Kaius_Inc/K_Keyboard/Kaius_Receiver.exe)
+[Tác giả: Nguyễn Công Thức (Kaius)](https://github.com/ncthuc2004) • [Tải APK v1.1.4 (Kboard.apk)](file:///t:/Kaius_Inc/K_Keyboard/Kboard.apk) • [Thư mục Releases](file:///t:/Kaius_Inc/K_Keyboard/releases/v1.1.4/) • [Windows Receiver](file:///t:/Kaius_Inc/K_Keyboard/Kaius_Receiver.exe)
 
 </div>
 
@@ -82,7 +82,7 @@
 ## 4. Hướng dẫn thiết lập & Sử dụng
 
 ### Cài đặt
-* **File APK:** Tải file [Kaius_Keyboard.apk](file:///t:/Kaius_Inc/K_Keyboard/Kaius_Keyboard.apk) và cài đặt lên điện thoại.
+* **File APK:** Tải file [Kboard.apk](file:///t:/Kaius_Inc/K_Keyboard/Kboard.apk) (hoặc [releases/v1.1.4/Kboard_v1.1.4.apk](file:///t:/Kaius_Inc/K_Keyboard/releases/v1.1.4/Kboard_v1.1.4.apk)) và cài đặt lên điện thoại.
 * **File Windows Receiver:** Chạy [Kaius_Receiver.exe](file:///t:/Kaius_Inc/K_Keyboard/Kaius_Receiver.exe) trên máy tính Windows.
 
 ---
