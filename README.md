@@ -1,4 +1,4 @@
-# KAIUS KEYBOARD & RECEIVER
+# Kboard (KAIUS KEYBOARD & RECEIVER)
 
 <div align="center">
 
@@ -6,11 +6,11 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
 ![Bluetooth](https://img.shields.io/badge/Bluetooth-HID%20Profile-0075FF?style=for-the-badge&logo=bluetooth&logoColor=white)
 ![Network](https://img.shields.io/badge/LAN-UDP%20Auto--Discovery-00C853?style=for-the-badge)
-![License](https://img.shields.io/badge/Version-v1.1.2-FF6D00?style=for-the-badge)
+![License](https://img.shields.io/badge/Version-v1.1.4-FF6D00?style=for-the-badge)
 
 **Giải pháp biến điện thoại thông minh thành Bàn phím cơ ảo siêu mượt, độ trễ cực thấp cho Máy tính, Laptop và Điện thoại khác.**
 
-[Tác giả: Nguyễn Công Thức (Kaius)](https://github.com/ncthuc2004) • [Tải APK v1.1.2](file:///t:/Kaius_Inc/K_Keyboard/Kaius_Keyboard.apk) • [Windows Receiver](file:///t:/Kaius_Inc/K_Keyboard/Kaius_Receiver.exe)
+[Tác giả: Nguyễn Công Thức (Kaius)](https://github.com/ncthuc2004) • [Tải APK v1.1.4](file:///t:/Kaius_Inc/K_Keyboard/Kaius_Keyboard.apk) • [Windows Receiver](file:///t:/Kaius_Inc/K_Keyboard/Kaius_Receiver.exe)
 
 </div>
 

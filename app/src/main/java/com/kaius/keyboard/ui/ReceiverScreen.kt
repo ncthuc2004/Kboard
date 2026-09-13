@@ -230,7 +230,7 @@ fun ReceiverHeaderCard(
                         }
                 ) {
                     Text(
-                        "1. Bật Bàn Phím Kaius (Cài đặt máy)",
+                        "1. Bật Bàn Phím Kboard (Cài đặt máy)",
                         color = AccentPrimary,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Medium,
@@ -252,7 +252,7 @@ fun ReceiverHeaderCard(
                         }
                 ) {
                     Text(
-                        "2. Chọn Kaius để Gõ Vào App Khác",
+                        "2. Chọn Kboard để Gõ Vào App Khác",
                         color = StatusSuccess,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Medium,

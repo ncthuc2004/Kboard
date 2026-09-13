@@ -237,7 +237,7 @@ fun LandscapeUnifiedHeader(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "KAIUS",
+                        text = "KBOARD",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = KeyTextMain,

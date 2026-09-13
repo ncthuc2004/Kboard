@@ -51,7 +51,7 @@
         <!-- Android Input Method Service (IME) for injecting LAN keystrokes into other apps -->
         <service
             android:name=".ime.KaiusImeService"
-            android:label="Kaius LAN Keyboard"
+            android:label="Kboard LAN Keyboard"
             android:permission="android.permission.BIND_INPUT_METHOD"
             android:exported="true">
             <intent-filter>
