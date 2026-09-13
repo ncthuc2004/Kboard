@@ -274,29 +274,57 @@ class BluetoothHidTransport(
             KEYBOARD_REPORT_DESCRIPTOR
         )
 
-        val qos = BluetoothHidDeviceAppQosSettings(
-            BluetoothHidDeviceAppQosSettings.SERVICE_BEST_EFFORT,
-            800,
-            9,
-            0,
-            11250,
-            BluetoothHidDeviceAppQosSettings.MAX
-        )
+        log("Khởi động đăng ký Bluetooth HID...")
+        _state.update { it.copy(status = ConnectionStatus.REGISTERING, statusMessage = "Đang đăng ký HID...") }
 
-        log("Bắt đầu đăng ký HID App (registerApp)...")
-        _state.update { it.copy(status = ConnectionStatus.REGISTERING, statusMessage = "Đang đăng ký HID App...") }
-
-        try {
-            val success = hid.registerApp(sdp, qos, qos, executor, hidCallback)
-            if (!success) {
-                log("registerApp trả về FALSE! MIUI có thể đang chặn hoặc đã có app đăng ký.", isError = true)
-                _state.update { it.copy(status = ConnectionStatus.FAILED, statusMessage = "registerApp trả về FALSE") }
-            } else {
-                log("registerApp gửi thành công, đang chờ callback...")
+        scope.launch(Dispatchers.IO) {
+            // Bước 1: Dọn dẹp session cũ nếu app hoặc tiến trình trước còn lưu
+            try {
+                hid.unregisterApp()
+                delay(150)
+            } catch (e: Exception) {
+                // Ignore
             }
-        } catch (e: Exception) {
-            log("Exception khi gọi registerApp: ${e.message}", isError = true)
-            _state.update { it.copy(status = ConnectionStatus.FAILED, statusMessage = "Exception: ${e.message}") }
+
+            // Bước 2: Thử đăng ký với QoS null (chuẩn AOSP khuyến nghị cho chip MediaTek/Qualcomm)
+            var success = false
+            try {
+                success = hid.registerApp(sdp, null, null, executor, hidCallback)
+                log("Thử registerApp (QoS null): $success")
+            } catch (e: Exception) {
+                log("registerApp (null QoS) exception: ${e.message}", isError = true)
+            }
+
+            // Bước 3: Nếu QoS null thất bại, thử lại với cấu hình QoS Best-Effort
+            if (!success) {
+                delay(200)
+                try {
+                    val qos = BluetoothHidDeviceAppQosSettings(
+                        BluetoothHidDeviceAppQosSettings.SERVICE_BEST_EFFORT,
+                        800,
+                        9,
+                        0,
+                        11250,
+                        BluetoothHidDeviceAppQosSettings.MAX
+                    )
+                    success = hid.registerApp(sdp, qos, qos, executor, hidCallback)
+                    log("Thử lại registerApp (QoS Best-Effort): $success")
+                } catch (e: Exception) {
+                    log("registerApp (QoS) exception: ${e.message}", isError = true)
+                }
+            }
+
+            if (!success) {
+                log("⚠️ registerApp trả về FALSE. Bản ROM MIUI có thể đã vô hiệu hóa cổng Bluetooth HID Device.", isError = true)
+                _state.update {
+                    it.copy(
+                        status = ConnectionStatus.FAILED,
+                        statusMessage = "MIUI chặn Bluetooth HID. Hãy dùng tab [Wi-Fi LAN]!"
+                    )
+                }
+            } else {
+                log("Đã gửi đăng ký HID App thành công, chờ hệ thống xác nhận...")
+            }
         }
     }
 

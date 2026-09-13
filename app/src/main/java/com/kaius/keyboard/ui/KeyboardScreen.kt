@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.Intent
+import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -840,6 +841,7 @@ fun PairedDevicesDialog(
     onDisconnect: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = SurfaceBar,
@@ -856,18 +858,56 @@ fun PairedDevicesDialog(
             }
         },
         text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Quick actions: Cho máy khác thấy + Mở Cài đặt Bluetooth của máy
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            val discoverableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
+                                putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
+                            }
+                            context.startActivity(discoverableIntent)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = SurfaceElevated),
+                        shape = RoundedCornerShape(4.dp),
+                        modifier = Modifier.weight(1f).height(32.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                    ) {
+                        Text("📡 Cho máy khác thấy (300s)", color = KeyTextMain, fontSize = 10.sp)
+                    }
+
+                    Button(
+                        onClick = {
+                            try {
+                                context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+                            } catch (e: Exception) {
+                                // Ignore
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = SurfaceElevated),
+                        shape = RoundedCornerShape(4.dp),
+                        modifier = Modifier.weight(1f).height(32.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                    ) {
+                        Text("⚙️ Cài đặt Bluetooth máy", color = KeyTextMain, fontSize = 10.sp)
+                    }
+                }
+
                 if (devices.isEmpty()) {
                     Text(
-                        "Chưa có thiết bị nào được pair.\nVào Cài đặt Bluetooth máy nhận để pair với 'Kaius Keyboard'.",
+                        "Chưa có thiết bị nào được ghép đôi.\n\n💡 Mẹo: Bấm 'Cài đặt Bluetooth máy' ở trên để ghép đôi với Laptop trước. Sau khi ghép đôi, quay lại đây bấm vào tên Laptop để kết nối ngay!",
                         color = KeyTextSubtle,
-                        fontSize = 12.sp
+                        fontSize = 11.sp,
+                        lineHeight = 16.sp
                     )
                 } else {
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(180.dp),
+                            .height(130.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         items(devices) { dev ->
