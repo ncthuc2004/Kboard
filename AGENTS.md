@@ -10,7 +10,7 @@
   - Trong thư mục của từng phiên bản phải chứa đầy đủ:
     1. `Kboard_v<versionName>.apk` (file APK gắn tag phiên bản).
     2. `Kboard.apk` (file APK chuẩn).
-    3. `Kaius_Receiver.exe` (bộ nhận Windows đồng bộ).
+    3. `Kboard_Receiver.exe` (bộ nhận Windows đồng bộ).
   - Duy trì duy nhất file APK chuẩn ở thư mục gốc: `Kboard.apk`.
 - **Hiển thị Version trực quan trên giao diện (UI)**:
   - Header chính (`LandscapeUnifiedHeader`): Luôn hiển thị nhãn phiên bản bên cạnh logo, ví dụ `KBOARD v1.1.4`.

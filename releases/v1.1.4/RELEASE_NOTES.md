@@ -10,4 +10,5 @@
 
 ## Tệp đính kèm trong thư mục:
 * `Kboard_v1.1.4.apk`: Bản cài đặt Android (API 28+).
-* `Kaius_Receiver.exe`: Bộ nhận phím độc lập cho máy tính Windows (đã tích hợp icon mới).
+* `Kboard.apk`: File cài đặt chuẩn.
+* `Kboard_Receiver.exe`: Bộ nhận phím độc lập cho máy tính Windows (đã tích hợp icon mới).

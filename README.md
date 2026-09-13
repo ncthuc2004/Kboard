@@ -13,7 +13,7 @@
 <br/>
 
 [![Download Android APK](https://img.shields.io/badge/Tải_ngay-Kboard.apk_(Android)-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/ncthuc2004/Kboard/releases/download/v1.1.4/Kboard.apk)
-[![Download Windows Receiver](https://img.shields.io/badge/Tải_ngay-Kaius_Receiver.exe_(Windows)-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ncthuc2004/Kboard/releases/download/v1.1.4/Kaius_Receiver.exe)
+[![Download Windows Receiver](https://img.shields.io/badge/Tải_ngay-Kboard_Receiver.exe_(Windows)-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ncthuc2004/Kboard/releases/download/v1.1.4/Kboard_Receiver.exe)
 [![View All Releases](https://img.shields.io/badge/Tất_cả_phiên_bản-GitHub_Releases-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/ncthuc2004/Kboard/releases)
 
 <br/>
@@ -56,7 +56,7 @@
   * Tự động nhận diện và xử lý dấu tiếng Việt theo chuẩn Telex (`aa` -> `â`, `aw` -> `ă`, `dd` -> `đ`, `s/f/r/x/j` bỏ dấu tự nhiên).
   * Công tắc chuyển nhanh `[ Telex: BẬT ]` / `[ Telex: TẮT ]` ngay trên thanh trạng thái IME.
 
-### Windows Companion Receiver (Kaius_Receiver.exe)
+### Windows Companion Receiver (Kboard_Receiver.exe)
 * Standalone Receiver cho Windows (~8.2MB), không cần cài đặt Python hay driver phức tạp.
 * Sử dụng Windows API `SendInput` kết hợp phần cứng scancode `user32.MapVirtualKeyW`, mô phỏng chính xác tín hiệu bàn phím vật lý cho mọi tựa game và ứng dụng Windows.
 
@@ -94,7 +94,7 @@
 | Nền tảng | Tệp cài đặt | Nút tải trực tiếp (1-Click) | Ghi chú |
 | :--- | :--- | :---: | :--- |
 | **Android** | `Kboard.apk` | [**Tải Kboard.apk**](https://github.com/ncthuc2004/Kboard/releases/download/v1.1.4/Kboard.apk) | Bản cài đặt cho điện thoại làm bàn phím hoặc điện thoại nhận |
-| **Windows** | `Kaius_Receiver.exe` | [**Tải Windows Receiver**](https://github.com/ncthuc2004/Kboard/releases/download/v1.1.4/Kaius_Receiver.exe) | Chạy ngay trên Laptop/PC Windows (không cần cài đặt driver) |
+| **Windows** | `Kboard_Receiver.exe` | [**Tải Windows Receiver**](https://github.com/ncthuc2004/Kboard/releases/download/v1.1.4/Kboard_Receiver.exe) | Chạy ngay trên Laptop/PC Windows (không cần cài đặt driver) |
 | **Lịch sử** | Mọi phiên bản | [**Xem GitHub Releases**](https://github.com/ncthuc2004/Kboard/releases) | Kho lưu trữ toàn bộ các phiên bản v1.1.4, v1.1.3... |
 
 ---
@@ -112,7 +112,7 @@
 ---
 
 ### Kịch bản 2: Kết nối Wi-Fi LAN sang Máy tính / Laptop Windows
-1. Trên máy tính Windows: Khởi chạy file `Kaius_Receiver.exe` (hoặc chạy lệnh `python receiver/pc_receiver.py`).
+1. Trên máy tính Windows: Khởi chạy file `Kboard_Receiver.exe` (hoặc chạy lệnh `python receiver/pc_receiver.py`).
 2. Trên điện thoại: Chọn chế độ `[ Wi-Fi LAN ]` -> Bấm nút **[ Quét LAN ]** -> Chọn thiết bị PC vừa tìm thấy.
 3. Bắt đầu gõ phím, điều khiển trình chiếu, chơi game hoặc gõ văn bản từ xa.
 

@@ -9,7 +9,7 @@
    - The directory must contain:
      - `Kboard_v<versionName>.apk`
      - `Kboard.apk`
-     - `Kaius_Receiver.exe`
+     - `Kboard_Receiver.exe`
    - Maintain single standardized root APK: `Kboard.apk`.
 
 3. **Display Version in UI**:

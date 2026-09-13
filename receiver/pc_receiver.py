@@ -164,9 +164,9 @@ def get_local_ip():
 def main():
     ip = get_local_ip()
     print("=" * 60)
-    print("  KAIUS KEYBOARD - WI-FI LAN RECEIVER")
+    print("  KBOARD - WI-FI LAN RECEIVER")
     print(f"  Listening on: {ip}:{PORT}")
-    print("  Enter this IP in your Kaius Keyboard app to connect.")
+    print("  Enter this IP in your Kboard app to connect.")
     print("=" * 60)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
