@@ -38,6 +38,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:screenOrientation="sensorLandscape"
             android:windowSoftInputMode="stateAlwaysHidden"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:theme="@style/Theme.KaiusKeyboard">

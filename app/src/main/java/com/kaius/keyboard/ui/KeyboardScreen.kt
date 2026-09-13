@@ -87,91 +87,8 @@ import com.kaius.keyboard.ui.theme.SurfaceElevated
 
 @Composable
 fun KeyboardScreen(viewModel: KeyboardViewModel) {
-    val appRole by viewModel.appRole.collectAsState()
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(AppBg)
-    ) {
-        // TOP ROLE BAR: Sleek segmented control
-        AppRoleBar(
-            currentRole = appRole,
-            onSelectRole = { viewModel.setAppRole(it) }
-        )
-
-        if (appRole == AppRole.RECEIVER) {
-            ReceiverScreen(viewModel = viewModel)
-        } else {
-            KeyboardModeContent(viewModel = viewModel)
-        }
-    }
-}
-
-@Composable
-fun AppRoleBar(
-    currentRole: AppRole,
-    onSelectRole: (AppRole) -> Unit
-) {
-    Surface(
-        color = SurfaceBar,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            // Segmented container
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(AppBg)
-                    .border(1.dp, SurfaceBorderSubtle, RoundedCornerShape(6.dp))
-                    .padding(2.dp)
-            ) {
-                Row {
-                    val isKbd = currentRole == AppRole.KEYBOARD
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(if (isKbd) SurfaceElevated else Color.Transparent)
-                            .clickable { onSelectRole(AppRole.KEYBOARD) }
-                            .padding(horizontal = 16.dp, vertical = 5.dp)
-                    ) {
-                        Text(
-                            text = "Bàn phím",
-                            fontSize = 12.sp,
-                            fontWeight = if (isKbd) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (isKbd) KeyTextMain else KeyTextSubtle
-                        )
-                    }
-
-                    val isRcv = currentRole == AppRole.RECEIVER
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(if (isRcv) SurfaceElevated else Color.Transparent)
-                            .clickable { onSelectRole(AppRole.RECEIVER) }
-                            .padding(horizontal = 16.dp, vertical = 5.dp)
-                    ) {
-                        Text(
-                            text = "Nhận phím",
-                            fontSize = 12.sp,
-                            fontWeight = if (isRcv) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (isRcv) KeyTextMain else KeyTextSubtle
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun KeyboardModeContent(viewModel: KeyboardViewModel) {
     val context = LocalContext.current
+    val appRole by viewModel.appRole.collectAsState()
     val currentMode by viewModel.currentMode.collectAsState()
     val state by viewModel.transportState.collectAsState()
     val modifiers by viewModel.modifiers.collectAsState()
@@ -184,12 +101,15 @@ fun KeyboardModeContent(viewModel: KeyboardViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(AppBg)
             .padding(horizontal = 4.dp, vertical = 2.dp)
     ) {
-        // TOP CONTROL HEADER
-        TopControlHeader(
+        // UNIFIED ULTRA-COMPACT LANDSCAPE HEADER (Single line: Role + Transport + Status + Actions)
+        LandscapeUnifiedHeader(
+            currentRole = appRole,
             currentMode = currentMode,
             state = state,
+            onSelectRole = { viewModel.setAppRole(it) },
             onSelectMode = { viewModel.switchMode(it) },
             onMakeDiscoverable = {
                 val discoverableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
@@ -203,50 +123,54 @@ fun KeyboardModeContent(viewModel: KeyboardViewModel) {
             onReRegister = { viewModel.reRegisterHid() }
         )
 
-        // AUTO-DISCOVERED RECEIVERS (Clean chip row)
-        if (currentMode == TransportMode.WIFI_LAN && discoveredReceivers.isNotEmpty()) {
+        if (appRole == AppRole.RECEIVER) {
+            ReceiverScreen(viewModel = viewModel)
+        } else {
+            // AUTO-DISCOVERED RECEIVERS (Compact banner)
+            if (currentMode == TransportMode.WIFI_LAN && discoveredReceivers.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                DiscoveredReceiversRow(
+                    receivers = discoveredReceivers,
+                    currentTargetIp = state.wifiTargetIp,
+                    onConnect = { viewModel.connectToDiscoveredReceiver(it) }
+                )
+            }
+
             Spacer(modifier = Modifier.height(2.dp))
-            DiscoveredReceiversRow(
-                receivers = discoveredReceivers,
-                currentTargetIp = state.wifiTargetIp,
-                onConnect = { viewModel.connectToDiscoveredReceiver(it) }
+
+            // QUICK SHORTCUTS & MACRO BAR (Sleek minimalist keys)
+            QuickMacroBar(
+                onSendMacro = { mod, key -> viewModel.sendMacro(mod, key) }
             )
-        }
 
-        Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(2.dp))
 
-        // QUICK SHORTCUTS & MACRO BAR (Sleek minimalist keys)
-        QuickMacroBar(
-            onSendMacro = { mod, key -> viewModel.sendMacro(mod, key) }
-        )
+            // MAIN PC KEYBOARD LAYOUT (Fills 90% of landscape height)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                PcKeyboardLayout(
+                    activeModifiers = modifiers,
+                    onKeyDown = { viewModel.onKeyDown(it) },
+                    onKeyUp = { viewModel.onKeyUp(it) },
+                    onKeyTap = { viewModel.onKeyTap(it) },
+                    onToggleModifier = { viewModel.toggleModifier(it) }
+                )
+            }
 
-        Spacer(modifier = Modifier.height(2.dp))
-
-        // MAIN PC KEYBOARD LAYOUT (Square mechanical keycaps)
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-        ) {
-            PcKeyboardLayout(
-                activeModifiers = modifiers,
-                onKeyDown = { viewModel.onKeyDown(it) },
-                onKeyUp = { viewModel.onKeyUp(it) },
-                onKeyTap = { viewModel.onKeyTap(it) },
-                onToggleModifier = { viewModel.toggleModifier(it) }
-            )
-        }
-
-        // COLLAPSIBLE DIAGNOSTICS CONSOLE
-        AnimatedVisibility(
-            visible = isDiagVisible,
-            enter = expandVertically(),
-            exit = shrinkVertically()
-        ) {
-            DiagnosticsConsole(
-                logs = state.logs,
-                onClose = { viewModel.toggleDiagnostics() }
-            )
+            // COLLAPSIBLE DIAGNOSTICS CONSOLE
+            AnimatedVisibility(
+                visible = isDiagVisible,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                DiagnosticsConsole(
+                    logs = state.logs,
+                    onClose = { viewModel.toggleDiagnostics() }
+                )
+            }
         }
     }
 
@@ -274,9 +198,11 @@ fun KeyboardModeContent(viewModel: KeyboardViewModel) {
 }
 
 @Composable
-fun TopControlHeader(
+fun LandscapeUnifiedHeader(
+    currentRole: AppRole,
     currentMode: TransportMode,
     state: com.kaius.keyboard.transport.TransportState,
+    onSelectRole: (AppRole) -> Unit,
     onSelectMode: (TransportMode) -> Unit,
     onMakeDiscoverable: () -> Unit,
     onOpenPairedDevices: () -> Unit,
@@ -286,124 +212,172 @@ fun TopControlHeader(
 ) {
     Surface(
         color = SurfaceBar,
-        shape = RoundedCornerShape(6.dp),
+        shape = RoundedCornerShape(4.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorderSubtle),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(30.dp)
     ) {
-        Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // Title
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "KAIUS",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = KeyTextMain,
-                        letterSpacing = 1.sp,
-                        fontFamily = FontFamily.Monospace
-                    )
-                }
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // LEFT: Brand + Role Switcher (Bàn phím | Nhận phím)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "KAIUS",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = KeyTextMain,
+                    letterSpacing = 1.sp,
+                    fontFamily = FontFamily.Monospace
+                )
 
-                // Mode Segmented Switcher
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Role Segment
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
+                        .clip(RoundedCornerShape(3.dp))
                         .background(AppBg)
-                        .border(1.dp, SurfaceBorderSubtle, RoundedCornerShape(4.dp))
-                        .padding(2.dp)
+                        .border(1.dp, SurfaceBorderSubtle, RoundedCornerShape(3.dp))
+                        .padding(1.dp)
                 ) {
                     Row {
-                        val isBt = currentMode == TransportMode.BLUETOOTH_HID
+                        val isKbd = currentRole == AppRole.KEYBOARD
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(if (isBt) SurfaceElevated else Color.Transparent)
-                                .clickable { onSelectMode(TransportMode.BLUETOOTH_HID) }
-                                .padding(horizontal = 10.dp, vertical = 3.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(if (isKbd) SurfaceElevated else Color.Transparent)
+                                .clickable { onSelectRole(AppRole.KEYBOARD) }
+                                .padding(horizontal = 8.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                "Bluetooth",
-                                fontSize = 11.sp,
-                                fontWeight = if (isBt) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (isBt) KeyTextMain else KeyTextSubtle
+                                "Bàn phím",
+                                fontSize = 10.sp,
+                                fontWeight = if (isKbd) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (isKbd) KeyTextMain else KeyTextSubtle
                             )
                         }
 
-                        val isWifi = currentMode == TransportMode.WIFI_LAN
+                        val isRcv = currentRole == AppRole.RECEIVER
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(if (isWifi) SurfaceElevated else Color.Transparent)
-                                .clickable { onSelectMode(TransportMode.WIFI_LAN) }
-                                .padding(horizontal = 10.dp, vertical = 3.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(if (isRcv) SurfaceElevated else Color.Transparent)
+                                .clickable { onSelectRole(AppRole.RECEIVER) }
+                                .padding(horizontal = 8.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                "Wi-Fi LAN",
-                                fontSize = 11.sp,
-                                fontWeight = if (isWifi) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (isWifi) KeyTextMain else KeyTextSubtle
+                                "Nhận phím",
+                                fontSize = 10.sp,
+                                fontWeight = if (isRcv) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (isRcv) KeyTextMain else KeyTextSubtle
                             )
                         }
-                    }
-                }
-
-                // Clean icon buttons (no extra boxes or borders)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (currentMode == TransportMode.BLUETOOTH_HID) {
-                        IconButton(onClick = onMakeDiscoverable, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.Search, contentDescription = "Pairing", tint = KeyTextMuted, modifier = Modifier.size(16.dp))
-                        }
-                        IconButton(onClick = onOpenPairedDevices, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.Devices, contentDescription = "Devices", tint = KeyTextMuted, modifier = Modifier.size(16.dp))
-                        }
-                        IconButton(onClick = onReRegister, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = KeyTextSubtle, modifier = Modifier.size(16.dp))
-                        }
-                    } else {
-                        IconButton(onClick = onOpenWifiConfig, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.Settings, contentDescription = "Settings", tint = KeyTextMuted, modifier = Modifier.size(16.dp))
-                        }
-                    }
-
-                    IconButton(onClick = onToggleDiagnostics, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.Terminal, contentDescription = "Console", tint = KeyTextSubtle, modifier = Modifier.size(16.dp))
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(2.dp))
+            // CENTER: Transport Segment (Bluetooth | Wi-Fi LAN) + Status Dot
+            if (currentRole == AppRole.KEYBOARD) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(AppBg)
+                            .border(1.dp, SurfaceBorderSubtle, RoundedCornerShape(3.dp))
+                            .padding(1.dp)
+                    ) {
+                        Row {
+                            val isBt = currentMode == TransportMode.BLUETOOTH_HID
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(if (isBt) SurfaceElevated else Color.Transparent)
+                                    .clickable { onSelectMode(TransportMode.BLUETOOTH_HID) }
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    "Bluetooth",
+                                    fontSize = 10.sp,
+                                    fontWeight = if (isBt) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (isBt) KeyTextMain else KeyTextSubtle
+                                )
+                            }
 
-            // Minimalist Status Bar
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                val dotColor = when (state.status) {
-                    ConnectionStatus.CONNECTED -> StatusSuccess
-                    ConnectionStatus.REGISTERED -> AccentPrimary
-                    ConnectionStatus.CONNECTING, ConnectionStatus.REGISTERING -> StatusPending
-                    ConnectionStatus.FAILED -> StatusError
-                    ConnectionStatus.DISCONNECTED -> KeyTextSubtle
+                            val isWifi = currentMode == TransportMode.WIFI_LAN
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(if (isWifi) SurfaceElevated else Color.Transparent)
+                                    .clickable { onSelectMode(TransportMode.WIFI_LAN) }
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    "Wi-Fi LAN",
+                                    fontSize = 10.sp,
+                                    fontWeight = if (isWifi) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (isWifi) KeyTextMain else KeyTextSubtle
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Status Dot + Host text
+                    val dotColor = when (state.status) {
+                        ConnectionStatus.CONNECTED -> StatusSuccess
+                        ConnectionStatus.REGISTERED -> AccentPrimary
+                        ConnectionStatus.CONNECTING, ConnectionStatus.REGISTERING -> StatusPending
+                        ConnectionStatus.FAILED -> StatusError
+                        ConnectionStatus.DISCONNECTED -> KeyTextSubtle
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(dotColor)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = state.statusMessage,
+                        fontSize = 10.sp,
+                        color = KeyTextMuted,
+                        maxLines = 1,
+                        fontFamily = FontFamily.Monospace
+                    )
                 }
+            }
 
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(dotColor)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = state.statusMessage,
-                    fontSize = 11.sp,
-                    color = KeyTextMuted,
-                    maxLines = 1,
-                    fontFamily = FontFamily.Monospace
-                )
+            // RIGHT: Action Icons
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (currentRole == AppRole.KEYBOARD) {
+                    if (currentMode == TransportMode.BLUETOOTH_HID) {
+                        IconButton(onClick = onMakeDiscoverable, modifier = Modifier.size(24.dp)) {
+                            Icon(Icons.Default.Search, contentDescription = "Pairing", tint = KeyTextMuted, modifier = Modifier.size(15.dp))
+                        }
+                        IconButton(onClick = onOpenPairedDevices, modifier = Modifier.size(24.dp)) {
+                            Icon(Icons.Default.Devices, contentDescription = "Devices", tint = KeyTextMuted, modifier = Modifier.size(15.dp))
+                        }
+                        IconButton(onClick = onReRegister, modifier = Modifier.size(24.dp)) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = KeyTextSubtle, modifier = Modifier.size(15.dp))
+                        }
+                    } else {
+                        IconButton(onClick = onOpenWifiConfig, modifier = Modifier.size(24.dp)) {
+                            Icon(Icons.Default.Settings, contentDescription = "Settings", tint = KeyTextMuted, modifier = Modifier.size(15.dp))
+                        }
+                    }
+
+                    IconButton(onClick = onToggleDiagnostics, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Terminal, contentDescription = "Console", tint = KeyTextSubtle, modifier = Modifier.size(15.dp))
+                    }
+                }
             }
         }
     }
@@ -422,7 +396,7 @@ fun DiscoveredReceiversRow(
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("Tìm thấy:", fontSize = 10.sp, color = KeyTextSubtle)
@@ -450,7 +424,9 @@ fun DiscoveredReceiversRow(
 @Composable
 fun QuickMacroBar(onSendMacro: (Byte, Byte) -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(20.dp),
         horizontalArrangement = Arrangement.spacedBy(3.dp)
     ) {
         val macros = listOf(
@@ -466,16 +442,16 @@ fun QuickMacroBar(onSendMacro: (Byte, Byte) -> Unit) {
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(24.dp)
-                    .clip(RoundedCornerShape(4.dp))
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(3.dp))
                     .background(KeySpecialBg)
-                    .border(1.dp, SurfaceBorderSubtle, RoundedCornerShape(4.dp))
+                    .border(1.dp, SurfaceBorderSubtle, RoundedCornerShape(3.dp))
                     .clickable { onSendMacro(mod, key) },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = label,
-                    fontSize = 10.sp,
+                    fontSize = 9.sp,
                     fontWeight = FontWeight.Medium,
                     color = KeyTextMuted,
                     fontFamily = FontFamily.Monospace

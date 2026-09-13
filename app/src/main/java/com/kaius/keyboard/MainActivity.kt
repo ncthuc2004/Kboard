@@ -34,6 +34,12 @@ class MainActivity : ComponentActivity() {
         // Keep screen on to prevent MIUI 12.5 battery optimization from unregistering HID profile
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        // Immersive sticky fullscreen for full horizontal keyboard real estate
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        val insetsController = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
+        insetsController.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        insetsController.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+
         checkAndRequestPermissions()
 
         setContent {
