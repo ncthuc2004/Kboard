@@ -1,24 +1,8 @@
-# Kboard v1.1.18 Release Notes
+# Kboard v1.1.18 - BAN LOI DA THU HOI (DEPRECATED)
 
-## Cai tien va Sua loi
+> **CANH BAO: PHIEN BAN CO LOI - DA THU HOI KHONG SU DUNG.**
+> Vui long cai dat ban on dinh chinh thuc tai [releases/v1.1.19/](../v1.1.19/) hoac file [Kboard.apk](../../Kboard.apk).
 
-### 1. Phuc hoi 100% kien truc goc ban 14
-- Giu nguyen toan bo tang truyen dan UDP, Bluetooth HID va co che go phim cua ban 14 on dinh.
-- Tuyet doi khong co lenh KEYCODE_HOME, nut Win giu nguyen ma KEYCODE_META_LEFT goc khong bao gio gay thoat app clone.
-
-### 2. Khac phuc cum phim Ctrl (Ctrl+A, Ctrl+V, Ctrl+C, Ctrl+X, Ctrl+Z)
-- Khi co InputConnection trong app clone hay hop van ban:
-  - Chi goi duy nhat performContextMenuAction (selectAll, paste, copy, cut, undo).
-  - Loai bo viec ban tiep ma phim ky tu A, C, V tho phia sau, cham dut tinh trang bi de mat chu thanh ky tu 'a', 'c', 'v' khi bam nut Macro tren dau.
-- Bo qua su kien ACTION_KEY_UP cho cac phim tat de khong bi nhan dup hay huy boi den.
-
-### 3. Khac phuc nut Alt+Tab
-- Chi goi lenh he thong KEYCODE_APP_SWITCH cua Android, khong ban phay them ma phim Tab phu de giao dien da nhiem khong bi giat hoac tu dong thoat.
-
-### 4. Giam do tre nut Win
-- Giam do tre truyen goi trong sendMacro tu 40ms xuong 20ms de nut Win phan hoi nhanh hon, khong bi cam giac cham/lag.
-
-## Danh muc tep phat hanh
-- Kboard_v1.1.18.apk: Ban cai dat APK Android v1.1.18 (versionCode 20, cai de truc tiep).
-- Kboard.apk: Ban APK chuan tai thu muc goc.
-- Kboard_Receiver.exe: Bo nhan Windows dong bo.
+## Chi tiet loi tai ban v1.1.18
+- **Loi chan su kien ban phim**: Ban 18 can thiep vao `KaiusImeService` chi goi `performContextMenuAction` ma khong tiep tuc gui `KeyEvent` du phong. Trong moi truong app clone va nhieu ung dung khong ho tro menu context, lenh nay bi ngat khien to hop phim Ctrl+A/C/V bi liet hoan toan ca khi go bang tay tren ban phim.
+- **Khac phuc o ban v1.1.19**: Khoi phuc nguyen ban v14 cho `KaiusImeService` va tinh chinh trinh tu phan cung trong `InputEngine.sendMacro` (nhan giu Ctrl truoc 20ms roi moi nhan phim ky tu).

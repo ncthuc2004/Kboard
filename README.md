@@ -135,11 +135,22 @@
 
 ---
 
-## 6. Tác giả
+## 6. Lich su Phien ban & Do on dinh
+
+| Phien ban | Trang thai | Chi tiet |
+| :--- | :--- | :--- |
+| **v1.1.19** | **On dinh (Khuyen nghi nhat)** | Phuc hoi kien truc IME chuan v14, khac phuc triet de to hop Macro Ctrl+A/C/V/Z, giam do tre nut Win con 15ms. |
+| v1.1.15 - v1.1.18 | **Da thu hoi (Khong su dung)** | Cac ban thu nghiem co loi thoat app clone khi bam Win hoac bi chan su kien ban phim. Da go khoi GitHub Releases. |
+| v1.1.14 | **On dinh (Cu)** | Ban on dinh cot moc ho tro IME phan cung. |
+| v1.1.4 - v1.1.13 | **Luu tru** | Cac phien ban phat trien tinh nang ban dau. |
+
+---
+
+## 7. Tac gia
  
-* **Kỹ sư phát triển:** **Nguyễn Công Thức (Kaius)**
+* **Ky su phat trien:** **Nguyen Cong Thuc (Kaius)**
 * **GitHub:** [https://github.com/ncthuc2004](https://github.com/ncthuc2004)
-* **Dự án:** *Kaius Keyboard & Receiver Ecosystem*
+* **Du an:** *Kaius Keyboard & Receiver Ecosystem*
 
 ---
 
