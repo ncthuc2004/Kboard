@@ -50,7 +50,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -127,13 +131,16 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
         if (appRole == AppRole.RECEIVER) {
             ReceiverScreen(viewModel = viewModel)
         } else {
-            // AUTO-DISCOVERED RECEIVERS (Compact banner)
-            if (currentMode == TransportMode.WIFI_LAN && discoveredReceivers.isNotEmpty()) {
+            // PERMANENT LAN CONNECTION BAR: Target IP, Discovered Devices & Scan
+            if (currentMode == TransportMode.WIFI_LAN) {
                 Spacer(modifier = Modifier.height(2.dp))
-                DiscoveredReceiversRow(
+                LanConnectionBar(
+                    targetIp = state.wifiTargetIp,
+                    targetPort = state.wifiTargetPort,
                     receivers = discoveredReceivers,
-                    currentTargetIp = state.wifiTargetIp,
-                    onConnect = { viewModel.connectToDiscoveredReceiver(it) }
+                    onOpenConfig = { viewModel.setShowWifiDialog(true) },
+                    onScan = { viewModel.lanDiscovery.startDiscovery() },
+                    onSelectReceiver = { viewModel.connectToDiscoveredReceiver(it) }
                 )
             }
 
@@ -385,38 +392,99 @@ fun LandscapeUnifiedHeader(
 }
 
 @Composable
-fun DiscoveredReceiversRow(
+fun LanConnectionBar(
+    targetIp: String,
+    targetPort: Int,
     receivers: List<DiscoveredReceiver>,
-    currentTargetIp: String,
-    onConnect: (DiscoveredReceiver) -> Unit
+    onOpenConfig: () -> Unit,
+    onScan: () -> Unit,
+    onSelectReceiver: (DiscoveredReceiver) -> Unit
 ) {
     Surface(
         color = SurfaceBar,
         shape = RoundedCornerShape(4.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorderSubtle),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(26.dp)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("Tìm thấy:", fontSize = 10.sp, color = KeyTextSubtle)
+            // LEFT: Current target IP & Clickable connect/change button
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(SurfaceElevated)
+                    .clickable { onOpenConfig() }
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    text = "🔗 Gửi tới: $targetIp:$targetPort",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AccentPrimary,
+                    fontFamily = FontFamily.Monospace
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "[Đổi IP]",
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = StatusSuccess
+                )
+            }
+
             Spacer(modifier = Modifier.width(6.dp))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                items(receivers) { rcv ->
-                    val isCurrent = rcv.ip == currentTargetIp
-                    Text(
-                        text = "${rcv.name} (${rcv.ip})",
-                        fontSize = 10.sp,
-                        fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (isCurrent) StatusSuccess else KeyTextMuted,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(if (isCurrent) KeyActiveBg else SurfaceElevated)
-                            .clickable { onConnect(rcv) }
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
+
+            // CENTER: Discovered devices or notice
+            if (receivers.isNotEmpty()) {
+                LazyRow(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    items(receivers) { rcv ->
+                        val isCurrent = rcv.ip == targetIp
+                        Text(
+                            text = "⚡ ${rcv.name} (${rcv.ip})",
+                            fontSize = 9.sp,
+                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isCurrent) StatusSuccess else KeyTextMain,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(if (isCurrent) KeyActiveBg else SurfaceElevated)
+                                .clickable { onSelectReceiver(rcv) }
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                 }
+            } else {
+                Text(
+                    text = "Bấm [Đổi IP] hoặc [Quét LAN] để kết nối",
+                    fontSize = 9.sp,
+                    color = KeyTextSubtle,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // RIGHT: Scan button
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(SurfaceElevated)
+                    .clickable { onScan() }
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            ) {
+                Icon(Icons.Default.Refresh, contentDescription = "Scan", tint = AccentPrimary, modifier = Modifier.size(11.dp))
+                Spacer(modifier = Modifier.width(3.dp))
+                Text("Quét LAN", fontSize = 9.sp, color = AccentPrimary, fontWeight = FontWeight.Medium)
             }
         }
     }
@@ -622,6 +690,7 @@ fun KeyButton(
     modifier: Modifier = Modifier
 ) {
     var isPressed by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     val isModActive = item.isModifier && (activeModifiers.toInt() and item.modifierMask.toInt()) != 0
 
@@ -661,7 +730,18 @@ fun KeyButton(
                         } else {
                             isPressed = true
                             onKeyDown(item.keyCode)
+
+                            // Key Repeat (Đè phím lặp lại mượt mà như phím thật)
+                            val repeatJob = coroutineScope.launch {
+                                delay(380)
+                                while (isActive) {
+                                    onKeyDown(item.keyCode)
+                                    delay(45)
+                                }
+                            }
+
                             tryAwaitRelease()
+                            repeatJob.cancel()
                             isPressed = false
                             onKeyUp(item.keyCode)
                         }
