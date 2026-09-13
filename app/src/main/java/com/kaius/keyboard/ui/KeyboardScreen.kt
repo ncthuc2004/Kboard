@@ -986,6 +986,16 @@ fun KeyboardSettingsDialog(
                 TextButton(onClick = onPing) {
                     Text("Gửi gói Ping thử nghiệm", color = KeyTextMuted, fontSize = 11.sp)
                 }
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = "Kboard v${com.kaius.keyboard.BuildConfig.VERSION_NAME} (Build ${com.kaius.keyboard.BuildConfig.VERSION_CODE})",
+                    color = AccentPrimary,
+                    fontSize = 10.sp,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
             }
         },
         confirmButton = {

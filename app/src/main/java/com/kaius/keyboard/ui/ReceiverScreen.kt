@@ -152,6 +152,14 @@ fun ReceiverHeaderCard(
                         letterSpacing = 1.sp,
                         fontFamily = FontFamily.Monospace
                     )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "v${com.kaius.keyboard.BuildConfig.VERSION_NAME}",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AccentPrimary,
+                        fontFamily = FontFamily.Monospace
+                    )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = if (state.isRunning) "• Đang lắng nghe cổng ${state.port}" else "• Dừng",
