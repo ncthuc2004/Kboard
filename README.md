@@ -10,7 +10,15 @@
 
 **Giải pháp biến điện thoại thông minh thành Bàn phím cơ ảo siêu mượt, độ trễ cực thấp cho Máy tính, Laptop và Điện thoại khác.**
 
-[Tác giả: Nguyễn Công Thức (Kaius)](https://github.com/ncthuc2004) • [Tải APK v1.1.4 (Kboard.apk)](file:///t:/Kaius_Inc/K_Keyboard/Kboard.apk) • [Thư mục Releases](file:///t:/Kaius_Inc/K_Keyboard/releases/v1.1.4/) • [Windows Receiver](file:///t:/Kaius_Inc/K_Keyboard/Kaius_Receiver.exe)
+<br/>
+
+[![Download Android APK](https://img.shields.io/badge/Tải_ngay-Kboard.apk_(Android)-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/ncthuc2004/Kboard/releases/download/v1.1.4/Kboard.apk)
+[![Download Windows Receiver](https://img.shields.io/badge/Tải_ngay-Kaius_Receiver.exe_(Windows)-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ncthuc2004/Kboard/releases/download/v1.1.4/Kaius_Receiver.exe)
+[![View All Releases](https://img.shields.io/badge/Tất_cả_phiên_bản-GitHub_Releases-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/ncthuc2004/Kboard/releases)
+
+<br/>
+
+**Tác giả:** [Nguyễn Công Thức (Kaius)](https://github.com/ncthuc2004) • **Phiên bản mới nhất:** [v1.1.4 Release](https://github.com/ncthuc2004/Kboard/releases/tag/v1.1.4)
 
 </div>
 
@@ -79,19 +87,23 @@
 
 ---
 
-## 4. Hướng dẫn thiết lập & Sử dụng
+## 4. Tải về & Hướng dẫn sử dụng
 
-### Cài đặt
-* **File APK:** Tải file [Kboard.apk](file:///t:/Kaius_Inc/K_Keyboard/Kboard.apk) (hoặc [releases/v1.1.4/Kboard_v1.1.4.apk](file:///t:/Kaius_Inc/K_Keyboard/releases/v1.1.4/Kboard_v1.1.4.apk)) và cài đặt lên điện thoại.
-* **File Windows Receiver:** Chạy [Kaius_Receiver.exe](file:///t:/Kaius_Inc/K_Keyboard/Kaius_Receiver.exe) trên máy tính Windows.
+### Bảng tải về trực tiếp (Downloads)
+
+| Nền tảng | Tệp cài đặt | Nút tải trực tiếp (1-Click) | Ghi chú |
+| :--- | :--- | :---: | :--- |
+| **Android** | `Kboard.apk` | [**Tải Kboard.apk**](https://github.com/ncthuc2004/Kboard/releases/download/v1.1.4/Kboard.apk) | Bản cài đặt cho điện thoại làm bàn phím hoặc điện thoại nhận |
+| **Windows** | `Kaius_Receiver.exe` | [**Tải Windows Receiver**](https://github.com/ncthuc2004/Kboard/releases/download/v1.1.4/Kaius_Receiver.exe) | Chạy ngay trên Laptop/PC Windows (không cần cài đặt driver) |
+| **Lịch sử** | Mọi phiên bản | [**Xem GitHub Releases**](https://github.com/ncthuc2004/Kboard/releases) | Kho lưu trữ toàn bộ các phiên bản v1.1.4, v1.1.3... |
 
 ---
 
 ### Kịch bản 1: Kết nối Wi-Fi LAN sang Điện thoại nhận (Hỗ trợ App Clone)
 1. **Trên điện thoại nhận**:
-   * Vào **Cài đặt** -> **Hệ thống & Bàn phím** -> Bật kích hoạt **Bàn phím Kaius LAN**.
-   * Mở app Kaius Keyboard -> Chọn vai trò `[ Nhận phím ]`.
-   * Mở ứng dụng cần gõ (App clone, game, trình duyệt...) và chọn bàn phím ảo là **Kaius LAN**.
+   * Vào **Cài đặt** -> **Hệ thống & Bàn phím** -> Bật kích hoạt **Bàn phím Kboard LAN**.
+   * Mở app Kboard -> Chọn vai trò `[ Nhận phím ]`.
+   * Mở ứng dụng cần gõ (App clone, game, trình duyệt...) và chọn bàn phím ảo là **Kboard LAN**.
 2. **Trên điện thoại làm bàn phím**:
    * Mở app -> Chọn `[ Bàn phím ]` -> Chọn tab `[ Wi-Fi LAN ]`.
    * App sẽ tự động quét và hiện tên máy nhận trên thanh kết nối. Bấm vào tên máy để kết nối ngay.
