@@ -3,6 +3,9 @@ package com.kaius.keyboard.ui
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.provider.Settings
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -120,6 +123,7 @@ fun ReceiverHeaderCard(
     onCopyIp: () -> Unit,
     onRestart: () -> Unit
 ) {
+    val context = LocalContext.current
     Surface(
         color = SurfaceBar,
         shape = RoundedCornerShape(6.dp),
@@ -204,6 +208,57 @@ fun ReceiverHeaderCard(
                     color = KeyTextSubtle,
                     fontFamily = FontFamily.Monospace
                 )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // IME SHORTCUTS: Enable typing outside this app (into Clone App, Games, Chrome, etc.)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Surface(
+                    color = AppBg,
+                    shape = RoundedCornerShape(4.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorderSubtle),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            try {
+                                context.startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
+                            } catch (_: Exception) {}
+                        }
+                ) {
+                    Text(
+                        "1. Bật Bàn Phím Kaius (Cài đặt máy)",
+                        color = AccentPrimary,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                    )
+                }
+
+                Surface(
+                    color = AppBg,
+                    shape = RoundedCornerShape(4.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorderSubtle),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            try {
+                                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                                imm?.showInputMethodPicker()
+                            } catch (_: Exception) {}
+                        }
+                ) {
+                    Text(
+                        "2. Chọn Kaius để Gõ Vào App Khác",
+                        color = StatusSuccess,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                    )
+                }
             }
         }
     }

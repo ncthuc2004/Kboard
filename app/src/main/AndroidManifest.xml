@@ -48,6 +48,20 @@
             </intent-filter>
         </activity>
 
+        <!-- Android Input Method Service (IME) for injecting LAN keystrokes into other apps -->
+        <service
+            android:name=".ime.KaiusImeService"
+            android:label="Kaius LAN Keyboard"
+            android:permission="android.permission.BIND_INPUT_METHOD"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.view.InputMethod" />
+            </intent-filter>
+            <meta-data
+                android:name="android.view.im"
+                android:resource="@xml/method" />
+        </service>
+
     </application>
 
 </manifest>

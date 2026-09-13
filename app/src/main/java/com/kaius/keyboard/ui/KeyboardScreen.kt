@@ -665,11 +665,6 @@ fun KeyButton(
                             isPressed = false
                             onKeyUp(item.keyCode)
                         }
-                    },
-                    onTap = {
-                        if (!item.isModifier) {
-                            onKeyTap(item.keyCode)
-                        }
                     }
                 )
             },

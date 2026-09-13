@@ -123,13 +123,16 @@ if sys.platform == "win32":
     VK_MENU = 0x12  # Alt
     VK_LWIN = 0x5B
 
+    user32 = ctypes.windll.user32
+
     def send_key_event(vk, is_up):
+        scan = user32.MapVirtualKeyW(vk, 0)
         extra = ctypes.c_ulong(0)
         ii_ = Input_I()
         flags = KEYEVENTF_KEYUP if is_up else 0
-        ii_.ki = KeyBdInput(vk, 0, flags, 0, ctypes.pointer(extra))
+        ii_.ki = KeyBdInput(vk, scan, flags, 0, ctypes.pointer(extra))
         x = Input(ctypes.c_ulong(INPUT_KEYBOARD), ii_)
-        ctypes.windll.user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
+        user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
 
     def apply_modifiers(mod_mask, is_up):
         if mod_mask & 0x01 or mod_mask & 0x10:  # Ctrl
