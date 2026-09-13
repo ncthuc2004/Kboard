@@ -2,21 +2,27 @@ package com.kaius.keyboard.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val DarkBg = Color(0xFF0D1117)
-val SurfaceDark = Color(0xFF161B22)
-val SurfaceElevated = Color(0xFF21262D)
-val SurfaceBorder = Color(0xFF30363D)
+// Professional Dark Palette (Matte Charcoal & Slate)
+val AppBg = Color(0xFF0F1117)
+val SurfaceBar = Color(0xFF161922)
+val SurfaceElevated = Color(0xFF1E222E)
+val SurfaceBorder = Color(0xFF2B3040)
+val SurfaceBorderSubtle = Color(0xFF222634)
 
-val KeyBgNormal = Color(0xFF21262D)
-val KeyBgPressed = Color(0xFF388BFD)
-val KeyBgSpecial = Color(0xFF1A1F26)
-val KeyBgModifier = Color(0xFF252B35)
-val KeyBgModifierActive = Color(0xFF00E5FF)
-val KeyTextNormal = Color(0xFFE6EDF3)
-val KeyTextSub = Color(0xFF8B949E)
-val KeyTextActive = Color(0xFF0D1117)
+// Keycap Palette (Mechanical / Minimalist)
+val KeyNormalBg = Color(0xFF1F2330)
+val KeyNormalPressed = Color(0xFF2C3244)
+val KeySpecialBg = Color(0xFF171A24)
+val KeyModifierBg = Color(0xFF171A24)
+val KeyActiveAccent = Color(0xFF38BDF8) // Crisp Sky Blue
+val KeyActiveBg = Color(0xFF0C4A6E)
 
-val AccentCyan = Color(0xFF00E5FF)
-val AccentGreen = Color(0xFF00FF9D)
-val AccentOrange = Color(0xFFFF9800)
-val AccentRed = Color(0xFFFF5252)
+val KeyTextMain = Color(0xFFE2E8F0)
+val KeyTextMuted = Color(0xFF94A3B8)
+val KeyTextSubtle = Color(0xFF64748B)
+
+// Accent Status Colors
+val StatusSuccess = Color(0xFF22C55E) // Crisp Emerald
+val StatusPending = Color(0xFFF59E0B) // Amber
+val StatusError = Color(0xFFEF4444)   // Clean Red
+val AccentPrimary = Color(0xFF38BDF8) // Clean Sky Blue

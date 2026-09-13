@@ -29,14 +29,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Devices
-import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,26 +40,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kaius.keyboard.engine.HidKeyCodes
 import com.kaius.keyboard.network.ReceiverState
-import com.kaius.keyboard.ui.theme.AccentCyan
-import com.kaius.keyboard.ui.theme.AccentGreen
-import com.kaius.keyboard.ui.theme.AccentOrange
-import com.kaius.keyboard.ui.theme.AccentRed
-import com.kaius.keyboard.ui.theme.DarkBg
-import com.kaius.keyboard.ui.theme.KeyBgModifierActive
-import com.kaius.keyboard.ui.theme.KeyTextActive
-import com.kaius.keyboard.ui.theme.KeyTextNormal
-import com.kaius.keyboard.ui.theme.KeyTextSub
-import com.kaius.keyboard.ui.theme.SurfaceBorder
-import com.kaius.keyboard.ui.theme.SurfaceDark
+import com.kaius.keyboard.ui.theme.AccentPrimary
+import com.kaius.keyboard.ui.theme.AppBg
+import com.kaius.keyboard.ui.theme.KeyActiveAccent
+import com.kaius.keyboard.ui.theme.KeyActiveBg
+import com.kaius.keyboard.ui.theme.KeyTextMain
+import com.kaius.keyboard.ui.theme.KeyTextMuted
+import com.kaius.keyboard.ui.theme.KeyTextSubtle
+import com.kaius.keyboard.ui.theme.StatusError
+import com.kaius.keyboard.ui.theme.StatusSuccess
+import com.kaius.keyboard.ui.theme.SurfaceBar
+import com.kaius.keyboard.ui.theme.SurfaceBorderSubtle
 import com.kaius.keyboard.ui.theme.SurfaceElevated
 
 @Composable
@@ -75,8 +68,8 @@ fun ReceiverScreen(viewModel: KeyboardViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBg)
-            .padding(12.dp)
+            .background(AppBg)
+            .padding(8.dp)
     ) {
         // TOP RECEIVER STATUS CARD
         ReceiverHeaderCard(
@@ -89,12 +82,12 @@ fun ReceiverScreen(viewModel: KeyboardViewModel) {
             onRestart = { viewModel.restartReceiver() }
         )
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // LIVE VISUAL KEY MONITOR
         VisualKeyDisplayCard(state = receiverState)
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // ACCUMULATED TEXT BUFFER CARD
         AccumulatedTextCard(
@@ -109,7 +102,7 @@ fun ReceiverScreen(viewModel: KeyboardViewModel) {
             onClear = { viewModel.clearAccumulatedText() }
         )
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // REALTIME KEY EVENT STREAM
         KeyEventStreamCard(
@@ -128,12 +121,12 @@ fun ReceiverHeaderCard(
     onRestart: () -> Unit
 ) {
     Surface(
-        color = SurfaceDark,
-        shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorder),
+        color = SurfaceBar,
+        shape = RoundedCornerShape(6.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorderSubtle),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(10.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -142,73 +135,75 @@ fun ReceiverHeaderCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(10.dp)
+                            .size(7.dp)
                             .clip(CircleShape)
-                            .background(if (state.isRunning) AccentGreen else AccentRed)
+                            .background(if (state.isRunning) StatusSuccess else StatusError)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "KAIUS RECEIVER",
-                        fontSize = 15.sp,
+                        text = "RECEIVER",
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = AccentGreen,
+                        color = KeyTextMain,
+                        letterSpacing = 1.sp,
                         fontFamily = FontFamily.Monospace
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (state.isRunning) "• Đang lắng nghe cổng ${state.port}" else "• Dừng",
+                        fontSize = 11.sp,
+                        color = KeyTextSubtle
                     )
                 }
 
-                IconButton(onClick = onRestart, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Restart", tint = KeyTextSub)
+                IconButton(onClick = onRestart, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Restart", tint = KeyTextSubtle, modifier = Modifier.size(16.dp))
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
-            // IP & Port Info
+            // IP & Device Info
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text("IP thiết bị nhận (để nhập trên bàn phím):", color = KeyTextSub, fontSize = 11.sp)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { onCopyIp() }
-                    ) {
-                        Text(
-                            text = "${state.localIp}:${state.port}",
-                            color = AccentGreen,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Icon(
-                            Icons.Default.ContentCopy,
-                            contentDescription = "Copy",
-                            tint = AccentGreen,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { onCopyIp() }
+                ) {
+                    Text(
+                        text = "${state.localIp}:${state.port}",
+                        color = AccentPrimary,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        Icons.Default.ContentCopy,
+                        contentDescription = "Copy",
+                        tint = KeyTextSubtle,
+                        modifier = Modifier.size(14.dp)
+                    )
                 }
 
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("Thiết bị:", color = KeyTextSub, fontSize = 11.sp)
-                    Text(state.deviceName, color = KeyTextNormal, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                }
+                Text(
+                    text = state.deviceName,
+                    color = KeyTextMuted,
+                    fontSize = 12.sp
+                )
             }
 
             if (state.connectedSenders.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Devices, contentDescription = null, tint = AccentCyan, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        "Đã nhận từ: ${state.connectedSenders.joinToString(", ")}",
-                        fontSize = 11.sp,
-                        color = AccentCyan
-                    )
-                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Đã nhận từ: ${state.connectedSenders.joinToString(", ")}",
+                    fontSize = 10.sp,
+                    color = KeyTextSubtle,
+                    fontFamily = FontFamily.Monospace
+                )
             }
         }
     }
@@ -218,12 +213,12 @@ fun ReceiverHeaderCard(
 fun VisualKeyDisplayCard(state: ReceiverState) {
     Surface(
         color = SurfaceElevated,
-        shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorder),
+        shape = RoundedCornerShape(6.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorderSubtle),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Modifiers Row
@@ -231,20 +226,20 @@ fun VisualKeyDisplayCard(state: ReceiverState) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                ModifierIndicator("CTRL", (state.activeModifiers.toInt() and (HidKeyCodes.MOD_LEFT_CTRL.toInt() or HidKeyCodes.MOD_RIGHT_CTRL.toInt())) != 0)
+                ModifierTag("CTRL", (state.activeModifiers.toInt() and (HidKeyCodes.MOD_LEFT_CTRL.toInt() or HidKeyCodes.MOD_RIGHT_CTRL.toInt())) != 0)
                 Spacer(modifier = Modifier.width(6.dp))
-                ModifierIndicator("SHIFT", (state.activeModifiers.toInt() and (HidKeyCodes.MOD_LEFT_SHIFT.toInt() or HidKeyCodes.MOD_RIGHT_SHIFT.toInt())) != 0)
+                ModifierTag("SHIFT", (state.activeModifiers.toInt() and (HidKeyCodes.MOD_LEFT_SHIFT.toInt() or HidKeyCodes.MOD_RIGHT_SHIFT.toInt())) != 0)
                 Spacer(modifier = Modifier.width(6.dp))
-                ModifierIndicator("ALT", (state.activeModifiers.toInt() and (HidKeyCodes.MOD_LEFT_ALT.toInt() or HidKeyCodes.MOD_RIGHT_ALT.toInt())) != 0)
+                ModifierTag("ALT", (state.activeModifiers.toInt() and (HidKeyCodes.MOD_LEFT_ALT.toInt() or HidKeyCodes.MOD_RIGHT_ALT.toInt())) != 0)
                 Spacer(modifier = Modifier.width(6.dp))
-                ModifierIndicator("WIN", (state.activeModifiers.toInt() and (HidKeyCodes.MOD_LEFT_GUI.toInt() or HidKeyCodes.MOD_RIGHT_GUI.toInt())) != 0)
+                ModifierTag("WIN", (state.activeModifiers.toInt() and (HidKeyCodes.MOD_LEFT_GUI.toInt() or HidKeyCodes.MOD_RIGHT_GUI.toInt())) != 0)
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Key Display Big Card
-            val lastKeyName = state.lastEvent?.keyName ?: "CHƯA CÓ PHÍM"
-            val lastAction = state.lastEvent?.action?.uppercase() ?: "IDLE"
+            // Key Display
+            val lastKeyName = state.lastEvent?.keyName ?: "—"
+            val lastAction = state.lastEvent?.action?.uppercase() ?: "CHỜ PHÍM"
 
             AnimatedContent(
                 targetState = lastKeyName to lastAction,
@@ -253,23 +248,23 @@ fun VisualKeyDisplayCard(state: ReceiverState) {
             ) { (name, action) ->
                 Box(
                     modifier = Modifier
-                        .size(width = 180.dp, height = 70.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(SurfaceDark)
-                        .border(1.dp, if (action == "DOWN" || action == "TAP") AccentGreen else SurfaceBorder, RoundedCornerShape(10.dp)),
+                        .size(width = 160.dp, height = 54.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(SurfaceBar)
+                        .border(1.dp, SurfaceBorderSubtle, RoundedCornerShape(4.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = name,
-                            fontSize = 26.sp,
+                            fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (action == "DOWN" || action == "TAP") AccentGreen else KeyTextNormal
+                            color = KeyTextMain
                         )
                         Text(
                             text = action,
-                            fontSize = 11.sp,
-                            color = if (action == "DOWN" || action == "TAP") AccentGreen else KeyTextSub,
+                            fontSize = 10.sp,
+                            color = KeyTextSubtle,
                             fontFamily = FontFamily.Monospace
                         )
                     }
@@ -280,19 +275,20 @@ fun VisualKeyDisplayCard(state: ReceiverState) {
 }
 
 @Composable
-fun ModifierIndicator(label: String, isActive: Boolean) {
+fun ModifierTag(label: String, isActive: Boolean) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(if (isActive) KeyBgModifierActive else SurfaceDark)
-            .border(1.dp, if (isActive) AccentCyan else SurfaceBorder, RoundedCornerShape(6.dp))
-            .padding(horizontal = 10.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(3.dp))
+            .background(if (isActive) KeyActiveBg else SurfaceBar)
+            .border(1.dp, if (isActive) KeyActiveAccent else SurfaceBorderSubtle, RoundedCornerShape(3.dp))
+            .padding(horizontal = 8.dp, vertical = 2.dp)
     ) {
         Text(
             text = label,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (isActive) KeyTextActive else KeyTextSub
+            fontSize = 10.sp,
+            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+            color = if (isActive) KeyActiveAccent else KeyTextSubtle,
+            fontFamily = FontFamily.Monospace
         )
     }
 }
@@ -304,56 +300,55 @@ fun AccumulatedTextCard(
     onClear: () -> Unit
 ) {
     Surface(
-        color = SurfaceDark,
-        shape = RoundedCornerShape(10.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorder),
+        color = SurfaceBar,
+        shape = RoundedCornerShape(6.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorderSubtle),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(10.dp)) {
+        Column(modifier = Modifier.padding(8.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "VĂN BẢN ĐÃ GÕ TRỰC TIẾP",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = AccentCyan,
+                    text = "VĂN BẢN ĐÃ GÕ",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = KeyTextSubtle,
                     fontFamily = FontFamily.Monospace
                 )
 
                 Row {
-                    IconButton(onClick = onCopyText, modifier = Modifier.size(24.dp)) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = AccentCyan, modifier = Modifier.size(16.dp))
+                    IconButton(onClick = onCopyText, modifier = Modifier.size(22.dp)) {
+                        Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = KeyTextMuted, modifier = Modifier.size(14.dp))
                     }
-                    IconButton(onClick = onClear, modifier = Modifier.size(24.dp)) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear", tint = KeyTextSub, modifier = Modifier.size(16.dp))
+                    IconButton(onClick = onClear, modifier = Modifier.size(22.dp)) {
+                        Icon(Icons.Default.Clear, contentDescription = "Clear", tint = KeyTextSubtle, modifier = Modifier.size(14.dp))
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
-
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(DarkBg)
-                    .padding(8.dp)
+                    .height(50.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(AppBg)
+                    .border(1.dp, SurfaceBorderSubtle, RoundedCornerShape(4.dp))
+                    .padding(6.dp)
             ) {
                 if (text.isEmpty()) {
                     Text(
-                        text = "Gõ phím từ máy bàn phím (Redmi 10) để xem nội dung hiển thị ở đây...",
-                        color = KeyTextSub,
+                        text = "Văn bản nhận được sẽ hiển thị ở đây...",
+                        color = KeyTextSubtle,
                         fontSize = 12.sp
                     )
                 } else {
                     Text(
                         text = text,
-                        color = KeyTextNormal,
-                        fontSize = 14.sp,
+                        color = KeyTextMain,
+                        fontSize = 13.sp,
                         fontFamily = FontFamily.Monospace
                     )
                 }
@@ -370,48 +365,48 @@ fun KeyEventStreamCard(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        color = SurfaceDark,
-        shape = RoundedCornerShape(10.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorder),
+        color = SurfaceBar,
+        shape = RoundedCornerShape(6.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorderSubtle),
         modifier = modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(10.dp)) {
+        Column(modifier = Modifier.padding(8.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "NHẬT KÝ SỰ KIỆN PHÍM ($totalPackets packets)",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = AccentOrange,
+                    text = "SỰ KIỆN PHÍM ($totalPackets)",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = KeyTextSubtle,
                     fontFamily = FontFamily.Monospace
                 )
                 IconButton(onClick = onClear, modifier = Modifier.size(20.dp)) {
-                    Icon(Icons.Default.Clear, contentDescription = "Clear", tint = KeyTextSub, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Clear, contentDescription = "Clear", tint = KeyTextSubtle, modifier = Modifier.size(14.dp))
                 }
             }
-
-            Spacer(modifier = Modifier.height(4.dp))
 
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(DarkBg)
-                    .padding(6.dp),
+                    .background(AppBg)
+                    .clip(RoundedCornerShape(4.dp))
+                    .border(1.dp, SurfaceBorderSubtle, RoundedCornerShape(4.dp))
+                    .padding(4.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 items(events, key = { it.id }) { ev ->
-                    val color = when (ev.action) {
-                        "down" -> AccentGreen
-                        "up" -> KeyTextSub
-                        else -> AccentCyan
+                    val actionColor = when (ev.action) {
+                        "down" -> StatusSuccess
+                        "up" -> KeyTextSubtle
+                        else -> AccentPrimary
                     }
                     Text(
-                        text = "[${ev.timestamp}] ${ev.action.uppercase().padEnd(4)} key=${ev.keyName} (0x${(ev.keyCode.toInt() and 0xFF).toString(16).uppercase()}) mod=0x${(ev.modifiers.toInt() and 0xFF).toString(16).uppercase()} from ${ev.senderIp}",
+                        text = "[${ev.timestamp}] ${ev.action.uppercase().padEnd(4)} ${ev.keyName.padEnd(8)} mod=0x${(ev.modifiers.toInt() and 0xFF).toString(16).uppercase()}",
                         fontSize = 10.sp,
-                        color = color,
+                        color = actionColor,
                         fontFamily = FontFamily.Monospace,
                         lineHeight = 13.sp
                     )
