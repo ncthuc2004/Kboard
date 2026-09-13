@@ -68,10 +68,8 @@ class InputEngine(
             if (keyCode == HidKeyCodes.KEY_NONE) {
                 // Modifier tap (e.g. Win key tap)
                 transportManager.sendKeyDown(HidKeyCodes.KEY_NONE, modMask)
-                delay(40)
+                delay(20)
                 transportManager.sendKeyUp(HidKeyCodes.KEY_NONE, HidKeyCodes.MOD_NONE)
-                delay(10)
-                transportManager.sendRawReport(HidKeyCodes.MOD_NONE, byteArrayOf())
             } else {
                 transportManager.sendKeyDown(keyCode, modMask)
                 delay(35)

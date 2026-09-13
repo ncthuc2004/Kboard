@@ -283,6 +283,12 @@ class KaiusImeService : InputMethodService() {
 
         // On key up of a regular key, inject ACTION_UP so apps, games and emulators detect release
         if (action == LanProtocol.ACTION_KEY_UP) {
+            if (isCtrl && (code == HidKeyCodes.KEY_A || code == HidKeyCodes.KEY_C || code == HidKeyCodes.KEY_V || code == HidKeyCodes.KEY_X || code == HidKeyCodes.KEY_Z)) {
+                return
+            }
+            if (isAlt && code == HidKeyCodes.KEY_TAB) {
+                return
+            }
             val androidKey = getAndroidKeyCode(code)
             if (androidKey != KeyEvent.KEYCODE_UNKNOWN) {
                 injectKeyEvent(KeyEvent.ACTION_UP, androidKey, mod)
@@ -294,7 +300,6 @@ class KaiusImeService : InputMethodService() {
         if (isAlt && code == HidKeyCodes.KEY_TAB) {
             currentWord = ""
             sendDownUpKeyEvents(KeyEvent.KEYCODE_APP_SWITCH)
-            injectKeyTap(KeyEvent.KEYCODE_TAB, mod)
             updateStatus("Chuyển ứng dụng [Alt+Tab]")
             return
         }
@@ -348,32 +353,47 @@ class KaiusImeService : InputMethodService() {
             val ic = currentInputConnection
             when (code) {
                 HidKeyCodes.KEY_C -> {
-                    ic?.performContextMenuAction(android.R.id.copy)
-                    injectKeyTap(KeyEvent.KEYCODE_C, mod)
+                    if (ic != null) {
+                        ic.performContextMenuAction(android.R.id.copy)
+                    } else {
+                        injectKeyTap(KeyEvent.KEYCODE_C, mod)
+                    }
                     updateStatus("Copy [Ctrl+C]")
                     return
                 }
                 HidKeyCodes.KEY_V -> {
-                    ic?.performContextMenuAction(android.R.id.paste)
-                    injectKeyTap(KeyEvent.KEYCODE_V, mod)
+                    if (ic != null) {
+                        ic.performContextMenuAction(android.R.id.paste)
+                    } else {
+                        injectKeyTap(KeyEvent.KEYCODE_V, mod)
+                    }
                     updateStatus("Paste [Ctrl+V]")
                     return
                 }
                 HidKeyCodes.KEY_A -> {
-                    ic?.performContextMenuAction(android.R.id.selectAll)
-                    injectKeyTap(KeyEvent.KEYCODE_A, mod)
+                    if (ic != null) {
+                        ic.performContextMenuAction(android.R.id.selectAll)
+                    } else {
+                        injectKeyTap(KeyEvent.KEYCODE_A, mod)
+                    }
                     updateStatus("Select All [Ctrl+A]")
                     return
                 }
                 HidKeyCodes.KEY_X -> {
-                    ic?.performContextMenuAction(android.R.id.cut)
-                    injectKeyTap(KeyEvent.KEYCODE_X, mod)
+                    if (ic != null) {
+                        ic.performContextMenuAction(android.R.id.cut)
+                    } else {
+                        injectKeyTap(KeyEvent.KEYCODE_X, mod)
+                    }
                     updateStatus("Cut [Ctrl+X]")
                     return
                 }
                 HidKeyCodes.KEY_Z -> {
-                    ic?.performContextMenuAction(android.R.id.undo)
-                    injectKeyTap(KeyEvent.KEYCODE_Z, mod)
+                    if (ic != null) {
+                        ic.performContextMenuAction(android.R.id.undo)
+                    } else {
+                        injectKeyTap(KeyEvent.KEYCODE_Z, mod)
+                    }
                     updateStatus("Undo [Ctrl+Z]")
                     return
                 }
