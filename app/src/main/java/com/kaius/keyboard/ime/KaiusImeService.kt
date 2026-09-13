@@ -1,6 +1,7 @@
 package com.kaius.keyboard.ime
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.inputmethodservice.InputMethodService
@@ -231,42 +232,113 @@ class KaiusImeService : InputMethodService() {
     }
 
     private fun dispatchKeyToInput(code: Byte, mod: Byte) {
-        val ic = currentInputConnection ?: return
         val isCtrl = (mod.toInt() and (HidKeyCodes.MOD_LEFT_CTRL.toInt() or HidKeyCodes.MOD_RIGHT_CTRL.toInt())) != 0
         val isShift = (mod.toInt() and (HidKeyCodes.MOD_LEFT_SHIFT.toInt() or HidKeyCodes.MOD_RIGHT_SHIFT.toInt())) != 0
         val isAlt = (mod.toInt() and (HidKeyCodes.MOD_LEFT_ALT.toInt() or HidKeyCodes.MOD_RIGHT_ALT.toInt())) != 0
+        val isGui = (mod.toInt() and (HidKeyCodes.MOD_LEFT_GUI.toInt() or HidKeyCodes.MOD_RIGHT_GUI.toInt())) != 0
 
-        // 1. Handle PC Shortcuts when CTRL is active (Ctrl+C, Ctrl+V, Ctrl+A, Ctrl+X, Ctrl+Z)
+        // 0. Handle Modifier-only events (code == KEY_NONE)
+        if (code == HidKeyCodes.KEY_NONE) {
+            if (isGui) {
+                // Tapping Win key: opens Android Launcher / Home Screen
+                sendDownUpKeyEvents(KeyEvent.KEYCODE_HOME)
+                updateStatus("Phím Win / Home")
+                return
+            }
+            if (isCtrl) {
+                updateStatus("Ctrl [BẬT]")
+                return
+            }
+            if (isAlt) {
+                updateStatus("Alt [BẬT]")
+                return
+            }
+            if (isShift) {
+                updateStatus("Shift [BẬT]")
+                return
+            }
+            updateStatus("Phím nhả hết")
+            return
+        }
+
+        // 1. Handle Alt+Tab (Switch recent apps on Android)
+        if (isAlt && code == HidKeyCodes.KEY_TAB) {
+            currentWord = ""
+            sendDownUpKeyEvents(KeyEvent.KEYCODE_APP_SWITCH)
+            updateStatus("Chuyển ứng dụng [Alt+Tab]")
+            return
+        }
+
+        // 2. Handle Win Combos (Win+D -> Home, Win+E -> Explorer/Files, etc.)
+        if (isGui) {
+            currentWord = ""
+            when (code) {
+                HidKeyCodes.KEY_D -> {
+                    sendDownUpKeyEvents(KeyEvent.KEYCODE_HOME)
+                    updateStatus("Show Desktop [Win+D]")
+                    return
+                }
+                HidKeyCodes.KEY_E, HidKeyCodes.KEY_F -> {
+                    sendDownUpKeyEvents(KeyEvent.KEYCODE_EXPLORER)
+                    updateStatus("Mở Files [Win+E]")
+                    return
+                }
+                HidKeyCodes.KEY_B -> {
+                    val intent = Intent(Intent.ACTION_MAIN).apply {
+                        addCategory(Intent.CATEGORY_APP_BROWSER)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    try { startActivity(intent) } catch (_: Exception) {}
+                    updateStatus("Mở Browser [Win+B]")
+                    return
+                }
+                else -> {
+                    val androidKey = getAndroidKeyCode(code)
+                    if (androidKey != KeyEvent.KEYCODE_UNKNOWN) {
+                        sendDownUpKeyEvents(androidKey)
+                        updateStatus("Win+Key($code)")
+                        return
+                    }
+                }
+            }
+        }
+
+        val ic = currentInputConnection
+        if (ic == null) {
+            // No focused text field (e.g. user on Receiver screen or Home): dispatch system keys directly
+            val androidKey = getAndroidKeyCode(code)
+            if (androidKey != KeyEvent.KEYCODE_UNKNOWN) {
+                sendDownUpKeyEvents(androidKey)
+            }
+            return
+        }
+
+        // 3. Handle PC Shortcuts when CTRL is active (Ctrl+C, Ctrl+V, Ctrl+A, Ctrl+X, Ctrl+Z)
         if (isCtrl) {
             currentWord = ""
             when (code) {
                 HidKeyCodes.KEY_C -> {
                     ic.performContextMenuAction(android.R.id.copy)
-                    sendMetaKeyEvent(ic, KeyEvent.KEYCODE_C, mod)
                     updateStatus("Copy [Ctrl+C]")
                     return
                 }
                 HidKeyCodes.KEY_V -> {
                     ic.performContextMenuAction(android.R.id.paste)
-                    sendMetaKeyEvent(ic, KeyEvent.KEYCODE_V, mod)
                     updateStatus("Paste [Ctrl+V]")
                     return
                 }
                 HidKeyCodes.KEY_A -> {
                     ic.performContextMenuAction(android.R.id.selectAll)
-                    sendMetaKeyEvent(ic, KeyEvent.KEYCODE_A, mod)
                     updateStatus("Select All [Ctrl+A]")
                     return
                 }
                 HidKeyCodes.KEY_X -> {
                     ic.performContextMenuAction(android.R.id.cut)
-                    sendMetaKeyEvent(ic, KeyEvent.KEYCODE_X, mod)
                     updateStatus("Cut [Ctrl+X]")
                     return
                 }
                 HidKeyCodes.KEY_Z -> {
                     ic.performContextMenuAction(android.R.id.undo)
-                    sendMetaKeyEvent(ic, KeyEvent.KEYCODE_Z, mod)
                     updateStatus("Undo [Ctrl+Z]")
                     return
                 }
@@ -281,7 +353,7 @@ class KaiusImeService : InputMethodService() {
             }
         }
 
-        // 2. Handle ALT combos
+        // 4. Handle ALT combos
         if (isAlt) {
             currentWord = ""
             val androidKey = getAndroidKeyCode(code)
@@ -291,7 +363,7 @@ class KaiusImeService : InputMethodService() {
             }
         }
 
-        // 3. Navigation, Editing, and Function Keys
+        // 5. Navigation, Editing, and Function Keys
         when (code) {
             HidKeyCodes.KEY_BACKSPACE -> {
                 if (currentWord.isNotEmpty()) {
@@ -410,6 +482,9 @@ class KaiusImeService : InputMethodService() {
         }
         if ((mod.toInt() and (HidKeyCodes.MOD_LEFT_SHIFT.toInt() or HidKeyCodes.MOD_RIGHT_SHIFT.toInt())) != 0) {
             meta = meta or KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON
+        }
+        if ((mod.toInt() and (HidKeyCodes.MOD_LEFT_GUI.toInt() or HidKeyCodes.MOD_RIGHT_GUI.toInt())) != 0) {
+            meta = meta or KeyEvent.META_META_ON or KeyEvent.META_META_LEFT_ON
         }
         val now = android.os.SystemClock.uptimeMillis()
         ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, androidKeyCode, 0, meta))

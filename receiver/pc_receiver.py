@@ -134,19 +134,61 @@ if sys.platform == "win32":
         x = Input(ctypes.c_ulong(INPUT_KEYBOARD), ii_)
         user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
 
-    def apply_modifiers(mod_mask, is_up):
-        if mod_mask & 0x01 or mod_mask & 0x10:  # Ctrl
-            send_key_event(VK_CONTROL, is_up)
-        if mod_mask & 0x02 or mod_mask & 0x20:  # Shift
-            send_key_event(VK_SHIFT, is_up)
-        if mod_mask & 0x04 or mod_mask & 0x40:  # Alt
-            send_key_event(VK_MENU, is_up)
-        if mod_mask & 0x08 or mod_mask & 0x80:  # Win
-            send_key_event(VK_LWIN, is_up)
+    current_modifiers = 0
+
+    def sync_modifiers(target_mod):
+        global current_modifiers
+        # Bit 0 or 4: Ctrl (0x01 | 0x10)
+        target_ctrl = bool(target_mod & 0x11)
+        current_ctrl = bool(current_modifiers & 0x11)
+        if target_ctrl and not current_ctrl:
+            send_key_event(VK_CONTROL, is_up=False)
+        elif not target_ctrl and current_ctrl:
+            send_key_event(VK_CONTROL, is_up=True)
+
+        # Bit 1 or 5: Shift (0x02 | 0x20)
+        target_shift = bool(target_mod & 0x22)
+        current_shift = bool(current_modifiers & 0x22)
+        if target_shift and not current_shift:
+            send_key_event(VK_SHIFT, is_up=False)
+        elif not target_shift and current_shift:
+            send_key_event(VK_SHIFT, is_up=True)
+
+        # Bit 2 or 6: Alt (0x04 | 0x40)
+        target_alt = bool(target_mod & 0x44)
+        current_alt = bool(current_modifiers & 0x44)
+        if target_alt and not current_alt:
+            send_key_event(VK_MENU, is_up=False)
+        elif not target_alt and current_alt:
+            send_key_event(VK_MENU, is_up=True)
+
+        # Bit 3 or 7: Win (0x08 | 0x80)
+        target_win = bool(target_mod & 0x88)
+        current_win = bool(current_modifiers & 0x88)
+        if target_win and not current_win:
+            send_key_event(VK_LWIN, is_up=False)
+        elif not target_win and current_win:
+            send_key_event(VK_LWIN, is_up=True)
+
+        current_modifiers = target_mod
+
+    def release_all_modifiers():
+        global current_modifiers
+        if current_modifiers & 0x11:
+            send_key_event(VK_CONTROL, is_up=True)
+        if current_modifiers & 0x22:
+            send_key_event(VK_SHIFT, is_up=True)
+        if current_modifiers & 0x44:
+            send_key_event(VK_MENU, is_up=True)
+        if current_modifiers & 0x88:
+            send_key_event(VK_LWIN, is_up=True)
+        current_modifiers = 0
 else:
     def send_key_event(vk, is_up):
         pass
-    def apply_modifiers(mod_mask, is_up):
+    def sync_modifiers(target_mod):
+        pass
+    def release_all_modifiers():
         pass
     HID_TO_VK = {}
 
@@ -193,6 +235,11 @@ def main():
                 print(f"[PING] from {addr[0]}")
                 continue
 
+            if action == "report":
+                mod = msg.get("m", 0)
+                sync_modifiers(mod)
+                continue
+
             code = msg.get("k", 0)
             mod = msg.get("m", 0)
             vk = HID_TO_VK.get(code, 0)
@@ -201,17 +248,27 @@ def main():
 
             if vk != 0:
                 if action == "down":
-                    apply_modifiers(mod, is_up=False)
+                    sync_modifiers(mod)
                     send_key_event(vk, is_up=False)
                 elif action == "up":
                     send_key_event(vk, is_up=True)
-                    apply_modifiers(mod, is_up=True)
+                    sync_modifiers(mod)
                 elif action == "tap":
-                    apply_modifiers(mod, is_up=False)
+                    sync_modifiers(mod)
                     send_key_event(vk, is_up=False)
                     time.sleep(0.02)
                     send_key_event(vk, is_up=True)
-                    apply_modifiers(mod, is_up=True)
+                    release_all_modifiers()
+            else:
+                # Modifier-only events (e.g. Win key tap, Ctrl toggle)
+                if action == "down":
+                    sync_modifiers(mod)
+                elif action == "up":
+                    sync_modifiers(mod)
+                elif action == "tap":
+                    sync_modifiers(mod)
+                    time.sleep(0.03)
+                    release_all_modifiers()
 
         except KeyboardInterrupt:
             print("\nShutting down receiver.")

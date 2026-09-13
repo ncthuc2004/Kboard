@@ -20,12 +20,21 @@ class InputEngine(
 
     // Sticky modifier mode (toggle on/off)
     fun toggleModifier(modMask: Byte) {
-        _modifiers.update { current ->
-            if ((current.toInt() and modMask.toInt()) != 0) {
-                (current.toInt() and modMask.toInt().inv()).toByte()
+        val next = if ((_modifiers.value.toInt() and modMask.toInt()) != 0) {
+            (_modifiers.value.toInt() and modMask.toInt().inv()).toByte()
+        } else {
+            (_modifiers.value.toInt() or modMask.toInt()).toByte()
+        }
+        _modifiers.value = next
+
+        scope.launch(Dispatchers.IO) {
+            val isNowActive = (next.toInt() and modMask.toInt()) != 0
+            if (isNowActive) {
+                transportManager.sendKeyDown(HidKeyCodes.KEY_NONE, next)
             } else {
-                (current.toInt() or modMask.toInt()).toByte()
+                transportManager.sendKeyUp(HidKeyCodes.KEY_NONE, next)
             }
+            transportManager.sendRawReport(next, byteArrayOf())
         }
     }
 
@@ -35,6 +44,10 @@ class InputEngine(
 
     fun clearModifiers() {
         _modifiers.value = HidKeyCodes.MOD_NONE
+        scope.launch(Dispatchers.IO) {
+            transportManager.sendKeyUp(HidKeyCodes.KEY_NONE, HidKeyCodes.MOD_NONE)
+            transportManager.sendRawReport(HidKeyCodes.MOD_NONE, byteArrayOf())
+        }
     }
 
     fun onKeyDown(keyCode: Byte) {
@@ -52,11 +65,20 @@ class InputEngine(
 
     fun sendMacro(modMask: Byte, keyCode: Byte) {
         scope.launch(Dispatchers.IO) {
-            transportManager.sendKeyDown(keyCode, modMask)
-            delay(35)
-            transportManager.sendKeyUp(keyCode, modMask)
-            delay(10)
-            transportManager.sendRawReport(HidKeyCodes.MOD_NONE, byteArrayOf())
+            if (keyCode == HidKeyCodes.KEY_NONE) {
+                // Modifier tap (e.g. Win key tap)
+                transportManager.sendKeyDown(HidKeyCodes.KEY_NONE, modMask)
+                delay(40)
+                transportManager.sendKeyUp(HidKeyCodes.KEY_NONE, HidKeyCodes.MOD_NONE)
+                delay(10)
+                transportManager.sendRawReport(HidKeyCodes.MOD_NONE, byteArrayOf())
+            } else {
+                transportManager.sendKeyDown(keyCode, modMask)
+                delay(35)
+                transportManager.sendKeyUp(keyCode, modMask)
+                delay(10)
+                transportManager.sendRawReport(HidKeyCodes.MOD_NONE, byteArrayOf())
+            }
         }
     }
 }

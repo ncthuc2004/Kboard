@@ -158,7 +158,7 @@ class LanServer(private val scope: CoroutineScope) {
 
                     val code = json.optInt("k", 0).toByte()
                     val mod = json.optInt("m", 0).toByte()
-                    val keyName = getKeyName(code)
+                    val keyName = if (code != HidKeyCodes.KEY_NONE) getKeyName(code) else getModifierName(mod)
 
                     val event = ReceivedKeyEvent(
                         timestamp = timeFormat.format(Date()),
@@ -169,14 +169,14 @@ class LanServer(private val scope: CoroutineScope) {
                         senderIp = senderIp
                     )
 
-                    if (action == LanProtocol.ACTION_KEY_DOWN) {
+                    if (action == LanProtocol.ACTION_KEY_DOWN || action == LanProtocol.ACTION_KEY_TAP) {
                         LanBridge.onKeyReceived?.invoke(code, mod)
                     }
 
                     _state.update { curr ->
                         val updatedKeys = when (action) {
-                            LanProtocol.ACTION_KEY_DOWN -> curr.activeKeys + code
-                            LanProtocol.ACTION_KEY_UP -> curr.activeKeys - code
+                            LanProtocol.ACTION_KEY_DOWN -> if (code != HidKeyCodes.KEY_NONE) curr.activeKeys + code else curr.activeKeys
+                            LanProtocol.ACTION_KEY_UP -> if (code != HidKeyCodes.KEY_NONE) curr.activeKeys - code else curr.activeKeys
                             else -> curr.activeKeys
                         }
 
@@ -203,7 +203,24 @@ class LanServer(private val scope: CoroutineScope) {
         }
     }
 
+    private fun getModifierName(mod: Byte): String {
+        val parts = mutableListOf<String>()
+        val m = mod.toInt()
+        if ((m and (HidKeyCodes.MOD_LEFT_CTRL.toInt() or HidKeyCodes.MOD_RIGHT_CTRL.toInt())) != 0) parts.add("Ctrl")
+        if ((m and (HidKeyCodes.MOD_LEFT_SHIFT.toInt() or HidKeyCodes.MOD_RIGHT_SHIFT.toInt())) != 0) parts.add("Shift")
+        if ((m and (HidKeyCodes.MOD_LEFT_ALT.toInt() or HidKeyCodes.MOD_RIGHT_ALT.toInt())) != 0) parts.add("Alt")
+        if ((m and (HidKeyCodes.MOD_LEFT_GUI.toInt() or HidKeyCodes.MOD_RIGHT_GUI.toInt())) != 0) parts.add("Win")
+        return if (parts.isEmpty()) "NONE" else parts.joinToString("+")
+    }
+
     private fun formatAccumulatedText(currentText: String, code: Byte, mod: Byte): String {
+        val isCtrl = (mod.toInt() and (HidKeyCodes.MOD_LEFT_CTRL.toInt() or HidKeyCodes.MOD_RIGHT_CTRL.toInt())) != 0
+        val isAlt = (mod.toInt() and (HidKeyCodes.MOD_LEFT_ALT.toInt() or HidKeyCodes.MOD_RIGHT_ALT.toInt())) != 0
+        val isGui = (mod.toInt() and (HidKeyCodes.MOD_LEFT_GUI.toInt() or HidKeyCodes.MOD_RIGHT_GUI.toInt())) != 0
+        if (isCtrl || isAlt || isGui) {
+            return currentText // Do not accumulate text on modifier shortcuts
+        }
+
         val isShift = (mod.toInt() and HidKeyCodes.MOD_LEFT_SHIFT.toInt() != 0) ||
                 (mod.toInt() and HidKeyCodes.MOD_RIGHT_SHIFT.toInt() != 0)
 
