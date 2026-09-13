@@ -1,11 +1,13 @@
 package com.kaius.keyboard.ime
 
+import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.inputmethodservice.InputMethodService
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -74,7 +76,7 @@ class KaiusImeService : InputMethodService() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setBackgroundColor(0xFF0F1117.toInt())
-            setPadding(16, 8, 16, 8)
+            setPadding(16, 10, 16, 10)
         }
 
         statusView = TextView(this).apply {
@@ -85,14 +87,67 @@ class KaiusImeService : InputMethodService() {
         }
         root.addView(statusView)
 
-        // Sleek language mode indicator badge (controlled from keyboard, not toggled here)
+        // Sleek language mode indicator badge (controlled strictly from keyboard sender, read-only on receiver)
         telexIndicator = TextView(this).apply {
             textSize = 10f
             gravity = Gravity.CENTER
-            setPadding(12, 4, 12, 4)
+            setPadding(12, 6, 12, 6)
+            isClickable = false
+            isFocusable = false
             updateTelexBadge()
         }
         root.addView(telexIndicator)
+
+        val spacer1 = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(10, 1)
+        }
+        root.addView(spacer1)
+
+        // BUTTON: Switch back to normal keyboard (Gboard, Laban Key, etc.)
+        val switchKeyboardBtn = TextView(this).apply {
+            text = "Đổi bàn phím thường"
+            setTextColor(0xFFE2E8F0.toInt())
+            textSize = 10f
+            gravity = Gravity.CENTER
+            setPadding(14, 6, 14, 6)
+            val bg = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6f
+                setColor(0xFF1E222E.toInt())
+                setStroke(1, 0xFF38BDF8.toInt())
+            }
+            background = bg
+            setOnClickListener {
+                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                imm?.showInputMethodPicker()
+            }
+        }
+        root.addView(switchKeyboardBtn)
+
+        val spacer2 = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(8, 1)
+        }
+        root.addView(spacer2)
+
+        // BUTTON: Hide / Dismiss Keyboard
+        val hideBtn = TextView(this).apply {
+            text = "Ẩn"
+            setTextColor(0xFF94A3B8.toInt())
+            textSize = 10f
+            gravity = Gravity.CENTER
+            setPadding(12, 6, 12, 6)
+            val bg = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6f
+                setColor(0xFF171A24.toInt())
+                setStroke(1, 0xFF2B3040.toInt())
+            }
+            background = bg
+            setOnClickListener {
+                requestHideSelf(0)
+            }
+        }
+        root.addView(hideBtn)
 
         return root
     }

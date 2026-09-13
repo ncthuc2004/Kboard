@@ -10,7 +10,9 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.app.Activity
 import android.provider.Settings
+import android.view.inputmethod.InputMethodManager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -43,10 +45,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -126,6 +131,7 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
     val isSoundEnabled by viewModel.isSoundEnabled.collectAsState()
     val repeatDelayMs by viewModel.repeatDelayMs.collectAsState()
     val repeatIntervalMs by viewModel.repeatIntervalMs.collectAsState()
+    val isKeyboardActive by viewModel.isKeyboardActive.collectAsState()
 
     val runtimeSettings = remember(rgbTheme, isReactiveGlow, isHapticEnabled, hapticStrength, isSoundEnabled, repeatDelayMs, repeatIntervalMs) {
         KeyboardRuntimeSettings(
@@ -149,9 +155,11 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
         LandscapeUnifiedHeader(
             currentRole = appRole,
             currentMode = currentMode,
+            isKeyboardActive = isKeyboardActive,
             state = state,
             onSelectRole = { viewModel.setAppRole(it) },
             onSelectMode = { viewModel.switchMode(it) },
+            onTogglePower = { viewModel.toggleKeyboardActive() },
             onMakeDiscoverable = {
                 val discoverableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
                     putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
@@ -206,6 +214,19 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
                     onToggleModifier = { viewModel.toggleModifier(it) },
                     settings = runtimeSettings
                 )
+
+                if (!isKeyboardActive) {
+                    StandbyOverlay(
+                        onActivate = { viewModel.setKeyboardActive(true) },
+                        onMinimize = {
+                            (context as? Activity)?.moveTaskToBack(true)
+                        },
+                        onRestoreDefaultIme = {
+                            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                            imm?.showInputMethodPicker()
+                        }
+                    )
+                }
             }
 
             // COLLAPSIBLE DIAGNOSTICS CONSOLE
@@ -267,9 +288,11 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
 fun LandscapeUnifiedHeader(
     currentRole: AppRole,
     currentMode: TransportMode,
+    isKeyboardActive: Boolean,
     state: com.kaius.keyboard.transport.TransportState,
     onSelectRole: (AppRole) -> Unit,
     onSelectMode: (TransportMode) -> Unit,
+    onTogglePower: () -> Unit,
     onMakeDiscoverable: () -> Unit,
     onOpenPairedDevices: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -453,6 +476,16 @@ fun LandscapeUnifiedHeader(
 
                     IconButton(onClick = onToggleDiagnostics, modifier = Modifier.size(24.dp)) {
                         Icon(Icons.Default.Terminal, contentDescription = "Console", tint = KeyTextSubtle, modifier = Modifier.size(15.dp))
+                    }
+
+                    // Power / Standby Button (Sleep mode & Return to normal state)
+                    IconButton(onClick = onTogglePower, modifier = Modifier.size(24.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.PowerSettingsNew,
+                            contentDescription = if (isKeyboardActive) "Nghỉ (Tắt bàn phím)" else "Bật lại bàn phím",
+                            tint = if (isKeyboardActive) StatusSuccess else StatusPending,
+                            modifier = Modifier.size(15.dp)
+                        )
                     }
                 }
             }
@@ -1164,3 +1197,136 @@ fun PairedDevicesDialog(
         }
     )
 }
+
+@Composable
+fun StandbyOverlay(
+    onActivate: () -> Unit,
+    onMinimize: () -> Unit,
+    onRestoreDefaultIme: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AppBg.copy(alpha = 0.94f))
+            .clickable(
+                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                indication = null
+            ) {
+                // Intercept touches so nothing passes through to keyboard keys below
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.PowerSettingsNew,
+                contentDescription = null,
+                tint = StatusPending,
+                modifier = Modifier.size(38.dp)
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = "BÀN PHÍM ĐANG Ở CHẾ ĐỘ NGHỈ (STANDBY)",
+                color = KeyTextMain,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+                letterSpacing = 1.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Các phím đã tạm khóa • Màn hình có thể tắt tự nhiên để tiết kiệm pin",
+                color = KeyTextSubtle,
+                fontSize = 11.sp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    color = KeyActiveBg,
+                    shape = RoundedCornerShape(5.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, AccentPrimary),
+                    modifier = Modifier.clickable { onActivate() }
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PowerSettingsNew,
+                            contentDescription = null,
+                            tint = AccentPrimary,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "BẬT LẠI BÀN PHÍM",
+                            color = AccentPrimary,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+
+                Surface(
+                    color = SurfaceElevated,
+                    shape = RoundedCornerShape(5.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorderSubtle),
+                    modifier = Modifier.clickable { onRestoreDefaultIme() }
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Keyboard,
+                            contentDescription = null,
+                            tint = KeyTextMain,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Đổi Bàn Phím Thường (Gboard)",
+                            color = KeyTextMain,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                Surface(
+                    color = SurfaceElevated,
+                    shape = RoundedCornerShape(5.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorderSubtle),
+                    modifier = Modifier.clickable { onMinimize() }
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.VisibilityOff,
+                            contentDescription = null,
+                            tint = KeyTextSubtle,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Về Màn Hình Chính",
+                            color = KeyTextSubtle,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+

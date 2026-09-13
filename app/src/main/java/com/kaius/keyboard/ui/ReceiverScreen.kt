@@ -220,7 +220,7 @@ fun ReceiverHeaderCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // IME SHORTCUTS: Enable typing outside this app (into Clone App, Games, Chrome, etc.)
+            // IME SHORTCUTS: Enable typing outside this app OR restore normal keyboard
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -238,11 +238,11 @@ fun ReceiverHeaderCard(
                         }
                 ) {
                     Text(
-                        "1. Bật Bàn Phím Kboard (Cài đặt máy)",
+                        "1. Bật Kboard (Cài đặt)",
                         color = AccentPrimary,
-                        fontSize = 10.sp,
+                        fontSize = 9.5.sp,
                         fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp)
                     )
                 }
 
@@ -260,11 +260,33 @@ fun ReceiverHeaderCard(
                         }
                 ) {
                     Text(
-                        "2. Chọn Kboard để Gõ Vào App Khác",
+                        "2. Chọn Kboard Nhận Phím",
                         color = StatusSuccess,
-                        fontSize = 10.sp,
+                        fontSize = 9.5.sp,
                         fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp)
+                    )
+                }
+
+                Surface(
+                    color = AppBg,
+                    shape = RoundedCornerShape(4.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorderSubtle),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            try {
+                                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                                imm?.showInputMethodPicker()
+                            } catch (_: Exception) {}
+                        }
+                ) {
+                    Text(
+                        "3. Trả Về Bàn Phím Thường",
+                        color = KeyTextMain,
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp)
                     )
                 }
             }

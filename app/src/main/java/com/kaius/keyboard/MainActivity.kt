@@ -10,6 +10,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.kaius.keyboard.ui.KeyboardScreen
 import com.kaius.keyboard.ui.KeyboardViewModel
 import com.kaius.keyboard.ui.theme.KaiusKeyboardTheme
@@ -31,8 +33,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Keep screen on to prevent battery optimization from unregistering HID profile
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // Dynamically toggle screen-on based on active state (allows screen to sleep when in Standby mode)
+        lifecycleScope.launch {
+            viewModel.isKeyboardActive.collect { active ->
+                if (active) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+            }
+        }
 
         // Immersive sticky fullscreen for full horizontal keyboard real estate
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)

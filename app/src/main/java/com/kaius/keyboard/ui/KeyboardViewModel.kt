@@ -108,9 +108,27 @@ class KeyboardViewModel(application: Application) : AndroidViewModel(application
     // Settings Modal State
     private val _showSettingsDialog = MutableStateFlow(false)
     val showSettingsDialog: StateFlow<Boolean> = _showSettingsDialog.asStateFlow()
-
     private val _settingsInitialTab = MutableStateFlow(0)
     val settingsInitialTab: StateFlow<Int> = _settingsInitialTab.asStateFlow()
+
+    // Keyboard Active / Standby State (Bật / Tắt Bàn phím khi không dùng)
+    private val _isKeyboardActive = MutableStateFlow(true)
+    val isKeyboardActive: StateFlow<Boolean> = _isKeyboardActive.asStateFlow()
+
+    fun toggleKeyboardActive() {
+        setKeyboardActive(!_isKeyboardActive.value)
+    }
+
+    fun setKeyboardActive(active: Boolean) {
+        _isKeyboardActive.value = active
+        if (active) {
+            if (currentMode.value == TransportMode.WIFI_LAN) {
+                lanDiscovery.startDiscovery()
+            }
+        } else {
+            lanDiscovery.stopDiscovery()
+        }
+    }
 
     init {
         val telexOn = _isTelexEnabled.value

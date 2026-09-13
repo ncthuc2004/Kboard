@@ -6,19 +6,19 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
 ![Bluetooth](https://img.shields.io/badge/Bluetooth-HID%20Profile-0075FF?style=for-the-badge&logo=bluetooth&logoColor=white)
 ![Network](https://img.shields.io/badge/LAN-UDP%20Auto--Discovery-00C853?style=for-the-badge)
-![License](https://img.shields.io/badge/Version-v1.1.9-FF6D00?style=for-the-badge)
+![License](https://img.shields.io/badge/Version-v1.1.10-FF6D00?style=for-the-badge)
 
 **Giải pháp biến điện thoại thông minh thành Bàn phím cơ ảo siêu mượt, độ trễ cực thấp cho Máy tính, Laptop và Điện thoại khác.**
 
 <br/>
 
-[![Download Android APK](https://img.shields.io/badge/Tải_ngay-Kboard.apk_(Android)-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/ncthuc2004/Kboard/releases/download/v1.1.9/Kboard.apk)
-[![Download Windows Receiver](https://img.shields.io/badge/Tải_ngay-Kboard_Receiver.exe_(Windows)-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ncthuc2004/Kboard/releases/download/v1.1.9/Kboard_Receiver.exe)
+[![Download Android APK](https://img.shields.io/badge/Tải_ngay-Kboard.apk_(Android)-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/ncthuc2004/Kboard/releases/download/v1.1.10/Kboard.apk)
+[![Download Windows Receiver](https://img.shields.io/badge/Tải_ngay-Kboard_Receiver.exe_(Windows)-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ncthuc2004/Kboard/releases/download/v1.1.10/Kboard_Receiver.exe)
 [![View All Releases](https://img.shields.io/badge/Tất_cả_phiên_bản-GitHub_Releases-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/ncthuc2004/Kboard/releases)
 
 <br/>
 
-**Tác giả:** [Nguyễn Công Thức (Kaius)](https://github.com/ncthuc2004) • **Phiên bản mới nhất:** [v1.1.9 Release](https://github.com/ncthuc2004/Kboard/releases/tag/v1.1.9)
+**Tác giả:** [Nguyễn Công Thức (Kaius)](https://github.com/ncthuc2004) • **Phiên bản mới nhất:** [v1.1.10 Release](https://github.com/ncthuc2004/Kboard/releases/tag/v1.1.10)
 
 </div>
 
