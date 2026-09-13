@@ -4,8 +4,11 @@ import android.app.Application
 import android.bluetooth.BluetoothDevice
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.kaius.keyboard.engine.HidKeyCodes
 import com.kaius.keyboard.engine.InputEngine
+import com.kaius.keyboard.network.DiscoveredReceiver
+import com.kaius.keyboard.network.LanDiscovery
+import com.kaius.keyboard.network.LanServer
+import com.kaius.keyboard.network.ReceiverState
 import com.kaius.keyboard.transport.ConnectionStatus
 import com.kaius.keyboard.transport.TransportManager
 import com.kaius.keyboard.transport.TransportMode
@@ -17,10 +20,22 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 
+enum class AppRole {
+    KEYBOARD,
+    RECEIVER
+}
+
 class KeyboardViewModel(application: Application) : AndroidViewModel(application) {
 
     val transportManager = TransportManager(application.applicationContext, viewModelScope)
     val inputEngine = InputEngine(transportManager, viewModelScope)
+
+    // LAN Server (Receiver mode engine) and LAN Discovery (Auto-find receiver)
+    val lanServer = LanServer(viewModelScope)
+    val lanDiscovery = LanDiscovery(viewModelScope)
+
+    private val _appRole = MutableStateFlow(AppRole.KEYBOARD)
+    val appRole: StateFlow<AppRole> = _appRole.asStateFlow()
 
     val currentMode: StateFlow<TransportMode> = transportManager.currentMode
 
@@ -42,6 +57,9 @@ class KeyboardViewModel(application: Application) : AndroidViewModel(application
             )
         )
 
+    val receiverState: StateFlow<ReceiverState> = lanServer.state
+    val discoveredReceivers: StateFlow<List<DiscoveredReceiver>> = lanDiscovery.discoveredReceivers
+
     val modifiers: StateFlow<Byte> = inputEngine.modifiers
 
     private val _pairedDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
@@ -59,10 +77,28 @@ class KeyboardViewModel(application: Application) : AndroidViewModel(application
     init {
         transportManager.initialize()
         refreshPairedDevices()
+        lanDiscovery.startDiscovery()
+    }
+
+    fun setAppRole(role: AppRole) {
+        _appRole.value = role
+        if (role == AppRole.RECEIVER) {
+            lanServer.start()
+        } else {
+            lanServer.stop()
+            lanDiscovery.startDiscovery()
+        }
     }
 
     fun switchMode(mode: TransportMode) {
         transportManager.setMode(mode)
+        if (mode == TransportMode.WIFI_LAN) {
+            lanDiscovery.startDiscovery()
+        }
+    }
+
+    fun connectToDiscoveredReceiver(receiver: DiscoveredReceiver) {
+        updateWifiTarget(receiver.ip, receiver.port)
     }
 
     fun toggleDiagnostics() {
@@ -124,8 +160,23 @@ class KeyboardViewModel(application: Application) : AndroidViewModel(application
         inputEngine.sendMacro(modMask, keyCode)
     }
 
+    fun clearAccumulatedText() {
+        lanServer.clearAccumulatedText()
+    }
+
+    fun clearEventHistory() {
+        lanServer.clearHistory()
+    }
+
+    fun restartReceiver() {
+        lanServer.stop()
+        lanServer.start()
+    }
+
     override fun onCleared() {
         super.onCleared()
         transportManager.release()
+        lanServer.stop()
+        lanDiscovery.stopDiscovery()
     }
 }

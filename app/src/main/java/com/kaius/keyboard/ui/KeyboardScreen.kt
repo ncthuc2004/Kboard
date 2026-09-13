@@ -23,15 +23,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.BluetoothSearching
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Wifi
@@ -65,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kaius.keyboard.engine.HidKeyCodes
 import com.kaius.keyboard.engine.KeyItem
+import com.kaius.keyboard.network.DiscoveredReceiver
 import com.kaius.keyboard.transport.ConnectionStatus
 import com.kaius.keyboard.transport.TransportMode
 import com.kaius.keyboard.ui.theme.AccentCyan
@@ -85,6 +87,85 @@ import com.kaius.keyboard.ui.theme.SurfaceElevated
 
 @Composable
 fun KeyboardScreen(viewModel: KeyboardViewModel) {
+    val appRole by viewModel.appRole.collectAsState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DarkBg)
+    ) {
+        // TOP APP ROLE SWITCHER: [ ⌨️ Làm bàn phím ] vs [ 🖥️ Nhận bàn phím ]
+        AppRoleBar(
+            currentRole = appRole,
+            onSelectRole = { viewModel.setAppRole(it) }
+        )
+
+        if (appRole == AppRole.RECEIVER) {
+            // RECEIVER MODE SCREEN
+            ReceiverScreen(viewModel = viewModel)
+        } else {
+            // KEYBOARD MODE SCREEN
+            KeyboardModeContent(viewModel = viewModel)
+        }
+    }
+}
+
+@Composable
+fun AppRoleBar(
+    currentRole: AppRole,
+    onSelectRole: (AppRole) -> Unit
+) {
+    Surface(
+        color = SurfaceDark,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            val isKbd = currentRole == AppRole.KEYBOARD
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(if (isKbd) AccentCyan.copy(alpha = 0.25f) else SurfaceElevated)
+                    .border(1.dp, if (isKbd) AccentCyan else SurfaceBorder, RoundedCornerShape(6.dp))
+                    .clickable { onSelectRole(AppRole.KEYBOARD) }
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = "⌨️ Làm bàn phím",
+                    fontSize = 12.sp,
+                    fontWeight = if (isKbd) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isKbd) AccentCyan else KeyTextSub
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            val isRcv = currentRole == AppRole.RECEIVER
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(if (isRcv) AccentGreen.copy(alpha = 0.25f) else SurfaceElevated)
+                    .border(1.dp, if (isRcv) AccentGreen else SurfaceBorder, RoundedCornerShape(6.dp))
+                    .clickable { onSelectRole(AppRole.RECEIVER) }
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = "🖥️ Nhận bàn phím",
+                    fontSize = 12.sp,
+                    fontWeight = if (isRcv) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isRcv) AccentGreen else KeyTextSub
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun KeyboardModeContent(viewModel: KeyboardViewModel) {
     val context = LocalContext.current
     val currentMode by viewModel.currentMode.collectAsState()
     val state by viewModel.transportState.collectAsState()
@@ -93,14 +174,14 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
     val showWifiDialog by viewModel.showWifiDialog.collectAsState()
     val showPairedDialog by viewModel.showPairedDialog.collectAsState()
     val pairedDevices by viewModel.pairedDevices.collectAsState()
+    val discoveredReceivers by viewModel.discoveredReceivers.collectAsState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBg)
-            .padding(horizontal = 6.dp, vertical = 4.dp)
+            .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
-        // TOP BAR: Mode Selector & Status
+        // TOP CONTROL BAR: Mode Selector & Status
         TopControlBar(
             currentMode = currentMode,
             state = state,
@@ -117,16 +198,26 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
             onReRegister = { viewModel.reRegisterHid() }
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        // AUTO-DISCOVERED RECEIVERS IN LAN BANNER
+        if (currentMode == TransportMode.WIFI_LAN && discoveredReceivers.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(3.dp))
+            DiscoveredReceiversBanner(
+                receivers = discoveredReceivers,
+                currentTargetIp = state.wifiTargetIp,
+                onConnect = { viewModel.connectToDiscoveredReceiver(it) }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(3.dp))
 
         // QUICK SHORTCUTS & MACRO BAR
         QuickMacroBar(
             onSendMacro = { mod, key -> viewModel.sendMacro(mod, key) }
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(3.dp))
 
-        // MAIN KEYBOARD LAYOUT (PC Standard)
+        // MAIN PC KEYBOARD LAYOUT
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -178,6 +269,48 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
 }
 
 @Composable
+fun DiscoveredReceiversBanner(
+    receivers: List<DiscoveredReceiver>,
+    currentTargetIp: String,
+    onConnect: (DiscoveredReceiver) -> Unit
+) {
+    Surface(
+        color = SurfaceElevated,
+        shape = RoundedCornerShape(8.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, AccentGreen.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Tìm thấy:", fontSize = 10.sp, color = AccentGreen, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.width(6.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(receivers) { rcv ->
+                    val isCurrent = rcv.ip == currentTargetIp
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (isCurrent) AccentGreen.copy(alpha = 0.2f) else SurfaceDark)
+                            .border(1.dp, if (isCurrent) AccentGreen else SurfaceBorder, RoundedCornerShape(6.dp))
+                            .clickable { onConnect(rcv) }
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = "🟢 ${rcv.name} (${rcv.ip})",
+                            fontSize = 10.sp,
+                            color = if (isCurrent) AccentGreen else KeyTextNormal,
+                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun TopControlBar(
     currentMode: TransportMode,
     state: com.kaius.keyboard.transport.TransportState,
@@ -194,22 +327,20 @@ fun TopControlBar(
         border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorder),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 // Title
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "KAIUS KEYBOARD",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AccentCyan,
-                        fontFamily = FontFamily.Monospace
-                    )
-                }
+                Text(
+                    text = "KAIUS KEYBOARD",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = AccentCyan,
+                    fontFamily = FontFamily.Monospace
+                )
 
                 // Mode Selector Buttons
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -218,28 +349,19 @@ fun TopControlBar(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
                             .background(if (isBt) AccentCyan.copy(alpha = 0.2f) else SurfaceElevated)
-                            .border(
-                                1.dp,
-                                if (isBt) AccentCyan else SurfaceBorder,
-                                RoundedCornerShape(6.dp)
-                            )
+                            .border(1.dp, if (isBt) AccentCyan else SurfaceBorder, RoundedCornerShape(6.dp))
                             .clickable { onSelectMode(TransportMode.BLUETOOTH_HID) }
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.Bluetooth,
                                 contentDescription = "BT",
                                 tint = if (isBt) AccentCyan else KeyTextSub,
-                                modifier = Modifier.size(13.sp.value.dp)
+                                modifier = Modifier.size(12.dp)
                             )
                             Spacer(modifier = Modifier.width(3.dp))
-                            Text(
-                                "BT HID",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (isBt) AccentCyan else KeyTextSub
-                            )
+                            Text("BT HID", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (isBt) AccentCyan else KeyTextSub)
                         }
                     }
 
@@ -248,28 +370,19 @@ fun TopControlBar(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
                             .background(if (isWifi) AccentGreen.copy(alpha = 0.2f) else SurfaceElevated)
-                            .border(
-                                1.dp,
-                                if (isWifi) AccentGreen else SurfaceBorder,
-                                RoundedCornerShape(6.dp)
-                            )
+                            .border(1.dp, if (isWifi) AccentGreen else SurfaceBorder, RoundedCornerShape(6.dp))
                             .clickable { onSelectMode(TransportMode.WIFI_LAN) }
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.Wifi,
                                 contentDescription = "WiFi",
                                 tint = if (isWifi) AccentGreen else KeyTextSub,
-                                modifier = Modifier.size(13.sp.value.dp)
+                                modifier = Modifier.size(12.dp)
                             )
                             Spacer(modifier = Modifier.width(3.dp))
-                            Text(
-                                "Wi-Fi LAN",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (isWifi) AccentGreen else KeyTextSub
-                            )
+                            Text("Wi-Fi LAN", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (isWifi) AccentGreen else KeyTextSub)
                         }
                     }
                 }
@@ -277,53 +390,28 @@ fun TopControlBar(
                 // Quick Action Icons
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (currentMode == TransportMode.BLUETOOTH_HID) {
-                        IconButton(onClick = onMakeDiscoverable, modifier = Modifier.size(28.dp)) {
-                            Icon(
-                                Icons.Default.BluetoothSearching,
-                                contentDescription = "Pairing",
-                                tint = AccentCyan,
-                                modifier = Modifier.size(16.dp)
-                            )
+                        IconButton(onClick = onMakeDiscoverable, modifier = Modifier.size(26.dp)) {
+                            Icon(Icons.Default.Search, contentDescription = "Pairing", tint = AccentCyan, modifier = Modifier.size(16.dp))
                         }
-                        IconButton(onClick = onOpenPairedDevices, modifier = Modifier.size(28.dp)) {
-                            Icon(
-                                Icons.Default.Link,
-                                contentDescription = "Paired",
-                                tint = KeyTextNormal,
-                                modifier = Modifier.size(16.dp)
-                            )
+                        IconButton(onClick = onOpenPairedDevices, modifier = Modifier.size(26.dp)) {
+                            Icon(Icons.Default.Link, contentDescription = "Paired", tint = KeyTextNormal, modifier = Modifier.size(16.dp))
                         }
-                        IconButton(onClick = onReRegister, modifier = Modifier.size(28.dp)) {
-                            Icon(
-                                Icons.Default.Refresh,
-                                contentDescription = "ReRegister",
-                                tint = KeyTextSub,
-                                modifier = Modifier.size(16.dp)
-                            )
+                        IconButton(onClick = onReRegister, modifier = Modifier.size(26.dp)) {
+                            Icon(Icons.Default.Refresh, contentDescription = "ReRegister", tint = KeyTextSub, modifier = Modifier.size(16.dp))
                         }
                     } else {
-                        IconButton(onClick = onOpenWifiConfig, modifier = Modifier.size(28.dp)) {
-                            Icon(
-                                Icons.Default.Settings,
-                                contentDescription = "Config",
-                                tint = AccentGreen,
-                                modifier = Modifier.size(16.dp)
-                            )
+                        IconButton(onClick = onOpenWifiConfig, modifier = Modifier.size(26.dp)) {
+                            Icon(Icons.Default.Settings, contentDescription = "Config", tint = AccentGreen, modifier = Modifier.size(16.dp))
                         }
                     }
 
-                    IconButton(onClick = onToggleDiagnostics, modifier = Modifier.size(28.dp)) {
-                        Icon(
-                            Icons.Default.Terminal,
-                            contentDescription = "Log",
-                            tint = AccentOrange,
-                            modifier = Modifier.size(16.dp)
-                        )
+                    IconButton(onClick = onToggleDiagnostics, modifier = Modifier.size(26.dp)) {
+                        Icon(Icons.Default.Terminal, contentDescription = "Log", tint = AccentOrange, modifier = Modifier.size(16.dp))
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(3.dp))
+            Spacer(modifier = Modifier.height(2.dp))
 
             // Status Badge Row
             Row(
@@ -340,14 +428,14 @@ fun TopControlBar(
 
                 Box(
                     modifier = Modifier
-                        .size(8.dp)
+                        .size(7.dp)
                         .clip(CircleShape)
                         .background(statusColor)
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(5.dp))
                 Text(
                     text = state.statusMessage,
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     color = statusColor,
                     maxLines = 1,
                     fontFamily = FontFamily.Monospace
@@ -376,10 +464,10 @@ fun QuickMacroBar(onSendMacro: (Byte, Byte) -> Unit) {
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(28.dp)
-                    .clip(RoundedCornerShape(6.dp))
+                    .height(26.dp)
+                    .clip(RoundedCornerShape(5.dp))
                     .background(KeyBgSpecial)
-                    .border(1.dp, SurfaceBorder, RoundedCornerShape(6.dp))
+                    .border(1.dp, SurfaceBorder, RoundedCornerShape(5.dp))
                     .clickable { onSendMacro(mod, key) },
                 contentAlignment = Alignment.Center
             ) {
@@ -404,7 +492,7 @@ fun PcKeyboardLayout(
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(3.dp)
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         // Row 1: Function Keys
         val row1 = listOf(
@@ -527,7 +615,7 @@ fun KeyboardRow(
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(3.dp)
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         for (key in keys) {
             KeyButton(
@@ -614,9 +702,9 @@ fun KeyButton(
             if (item.subLabel != null) {
                 Text(
                     text = item.subLabel,
-                    fontSize = 9.sp,
+                    fontSize = 8.sp,
                     color = KeyTextSub,
-                    lineHeight = 9.sp
+                    lineHeight = 8.sp
                 )
             }
             Text(
@@ -704,7 +792,6 @@ fun WifiConfigDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Nhập IP của thiết bị nhận (Redmi Turbo 4 hoặc Laptop):", color = KeyTextNormal, fontSize = 12.sp)
 
-                // Quick presets
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     OutlinedButton(
                         onClick = { ip = "192.168.43.1" },
