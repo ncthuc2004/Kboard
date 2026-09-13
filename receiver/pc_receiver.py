@@ -175,6 +175,17 @@ def main():
             msg = json.loads(data.decode("utf-8"))
             action = msg.get("a")
 
+            if action == "discover":
+                announce_data = json.dumps({
+                    "a": "announce",
+                    "name": f"PC ({socket.gethostname()})",
+                    "ip": ip,
+                    "port": PORT
+                }).encode("utf-8")
+                sock.sendto(announce_data, addr)
+                print(f"[DISCOVERY] Replied to {addr[0]}")
+                continue
+
             if action == "ping":
                 print(f"[PING] from {addr[0]}")
                 continue
