@@ -41,9 +41,9 @@ class KaiusImeService : InputMethodService() {
         super.onCreate()
 
         // 1. Hook into in-process bridge from LanServer
-        LanBridge.onKeyReceived = { code, mod ->
+        LanBridge.onKeyReceived = { action, code, mod ->
             scope.launch(Dispatchers.Main) {
-                dispatchKeyToInput(code, mod)
+                dispatchKeyToInput(action, code, mod)
             }
         }
 
@@ -208,7 +208,7 @@ class KaiusImeService : InputMethodService() {
                             currentWord = ""
                             updateTelexBadge()
                         }
-                    } else if (action == LanProtocol.ACTION_KEY_DOWN) {
+                    } else if (action == LanProtocol.ACTION_KEY_DOWN || action == LanProtocol.ACTION_KEY_UP || action == LanProtocol.ACTION_KEY_TAP) {
                         if (json.has("tx")) {
                             val enabled = json.optInt("tx", 1) == 1
                             if (isTelexEnabled != enabled) {
@@ -221,7 +221,7 @@ class KaiusImeService : InputMethodService() {
                         val code = json.optInt("k", 0).toByte()
                         val mod = json.optInt("m", 0).toByte()
                         scope.launch(Dispatchers.Main) {
-                            dispatchKeyToInput(code, mod)
+                            dispatchKeyToInput(action, code, mod)
                         }
                     }
                 }
@@ -231,33 +231,62 @@ class KaiusImeService : InputMethodService() {
         }
     }
 
-    private fun dispatchKeyToInput(code: Byte, mod: Byte) {
+    private fun dispatchKeyToInput(action: String, code: Byte, mod: Byte) {
         val isCtrl = (mod.toInt() and (HidKeyCodes.MOD_LEFT_CTRL.toInt() or HidKeyCodes.MOD_RIGHT_CTRL.toInt())) != 0
         val isShift = (mod.toInt() and (HidKeyCodes.MOD_LEFT_SHIFT.toInt() or HidKeyCodes.MOD_RIGHT_SHIFT.toInt())) != 0
         val isAlt = (mod.toInt() and (HidKeyCodes.MOD_LEFT_ALT.toInt() or HidKeyCodes.MOD_RIGHT_ALT.toInt())) != 0
         val isGui = (mod.toInt() and (HidKeyCodes.MOD_LEFT_GUI.toInt() or HidKeyCodes.MOD_RIGHT_GUI.toInt())) != 0
 
+        val keyAction = when (action) {
+            LanProtocol.ACTION_KEY_UP -> KeyEvent.ACTION_UP
+            else -> KeyEvent.ACTION_DOWN
+        }
+        val isTap = (action == LanProtocol.ACTION_KEY_TAP)
+
         // 0. Handle Modifier-only events (code == KEY_NONE)
         if (code == HidKeyCodes.KEY_NONE) {
-            if (isGui) {
-                // Tapping Win key: opens Android Launcher / Home Screen
-                sendDownUpKeyEvents(KeyEvent.KEYCODE_HOME)
-                updateStatus("Phím Win / Home")
+            val targetKey = when {
+                isGui -> KeyEvent.KEYCODE_META_LEFT
+                isCtrl -> KeyEvent.KEYCODE_CTRL_LEFT
+                isAlt -> KeyEvent.KEYCODE_ALT_LEFT
+                isShift -> KeyEvent.KEYCODE_SHIFT_LEFT
+                else -> KeyEvent.KEYCODE_UNKNOWN
+            }
+
+            if (targetKey != KeyEvent.KEYCODE_UNKNOWN) {
+                val modName = when (targetKey) {
+                    KeyEvent.KEYCODE_META_LEFT -> "Win"
+                    KeyEvent.KEYCODE_CTRL_LEFT -> "Ctrl"
+                    KeyEvent.KEYCODE_ALT_LEFT -> "Alt"
+                    KeyEvent.KEYCODE_SHIFT_LEFT -> "Shift"
+                    else -> ""
+                }
+
+                if (isTap) {
+                    injectKeyTap(targetKey, mod)
+                    updateStatus("Phím $modName [TAP]")
+                } else if (keyAction == KeyEvent.ACTION_DOWN) {
+                    injectKeyEvent(KeyEvent.ACTION_DOWN, targetKey, mod)
+                    updateStatus("Phím $modName [BẬT]")
+                } else {
+                    injectKeyEvent(KeyEvent.ACTION_UP, targetKey, mod)
+                    updateStatus("Phím $modName [TẮT]")
+                }
+                return
+            } else if (action == LanProtocol.ACTION_KEY_UP) {
+                releaseAllModifiers()
+                updateStatus("Nhả hết phím")
                 return
             }
-            if (isCtrl) {
-                updateStatus("Ctrl [BẬT]")
-                return
+            return
+        }
+
+        // On key up of a regular key, inject ACTION_UP so apps, games and emulators detect release
+        if (action == LanProtocol.ACTION_KEY_UP) {
+            val androidKey = getAndroidKeyCode(code)
+            if (androidKey != KeyEvent.KEYCODE_UNKNOWN) {
+                injectKeyEvent(KeyEvent.ACTION_UP, androidKey, mod)
             }
-            if (isAlt) {
-                updateStatus("Alt [BẬT]")
-                return
-            }
-            if (isShift) {
-                updateStatus("Shift [BẬT]")
-                return
-            }
-            updateStatus("Phím nhả hết")
             return
         }
 
@@ -265,6 +294,7 @@ class KaiusImeService : InputMethodService() {
         if (isAlt && code == HidKeyCodes.KEY_TAB) {
             currentWord = ""
             sendDownUpKeyEvents(KeyEvent.KEYCODE_APP_SWITCH)
+            injectKeyTap(KeyEvent.KEYCODE_TAB, mod)
             updateStatus("Chuyển ứng dụng [Alt+Tab]")
             return
         }
@@ -274,12 +304,21 @@ class KaiusImeService : InputMethodService() {
             currentWord = ""
             when (code) {
                 HidKeyCodes.KEY_D -> {
-                    sendDownUpKeyEvents(KeyEvent.KEYCODE_HOME)
+                    val intent = Intent(Intent.ACTION_MAIN).apply {
+                        addCategory(Intent.CATEGORY_HOME)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    try { startActivity(intent) } catch (_: Exception) {}
+                    injectKeyTap(KeyEvent.KEYCODE_D, mod)
                     updateStatus("Show Desktop [Win+D]")
                     return
                 }
                 HidKeyCodes.KEY_E, HidKeyCodes.KEY_F -> {
-                    sendDownUpKeyEvents(KeyEvent.KEYCODE_EXPLORER)
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    try { startActivity(intent) } catch (_: Exception) {}
+                    injectKeyTap(KeyEvent.KEYCODE_E, mod)
                     updateStatus("Mở Files [Win+E]")
                     return
                 }
@@ -295,7 +334,7 @@ class KaiusImeService : InputMethodService() {
                 else -> {
                     val androidKey = getAndroidKeyCode(code)
                     if (androidKey != KeyEvent.KEYCODE_UNKNOWN) {
-                        sendDownUpKeyEvents(androidKey)
+                        injectKeyTap(androidKey, mod)
                         updateStatus("Win+Key($code)")
                         return
                     }
@@ -303,49 +342,45 @@ class KaiusImeService : InputMethodService() {
             }
         }
 
-        val ic = currentInputConnection
-        if (ic == null) {
-            // No focused text field (e.g. user on Receiver screen or Home): dispatch system keys directly
-            val androidKey = getAndroidKeyCode(code)
-            if (androidKey != KeyEvent.KEYCODE_UNKNOWN) {
-                sendDownUpKeyEvents(androidKey)
-            }
-            return
-        }
-
         // 3. Handle PC Shortcuts when CTRL is active (Ctrl+C, Ctrl+V, Ctrl+A, Ctrl+X, Ctrl+Z)
         if (isCtrl) {
             currentWord = ""
+            val ic = currentInputConnection
             when (code) {
                 HidKeyCodes.KEY_C -> {
-                    ic.performContextMenuAction(android.R.id.copy)
+                    ic?.performContextMenuAction(android.R.id.copy)
+                    injectKeyTap(KeyEvent.KEYCODE_C, mod)
                     updateStatus("Copy [Ctrl+C]")
                     return
                 }
                 HidKeyCodes.KEY_V -> {
-                    ic.performContextMenuAction(android.R.id.paste)
+                    ic?.performContextMenuAction(android.R.id.paste)
+                    injectKeyTap(KeyEvent.KEYCODE_V, mod)
                     updateStatus("Paste [Ctrl+V]")
                     return
                 }
                 HidKeyCodes.KEY_A -> {
-                    ic.performContextMenuAction(android.R.id.selectAll)
+                    ic?.performContextMenuAction(android.R.id.selectAll)
+                    injectKeyTap(KeyEvent.KEYCODE_A, mod)
                     updateStatus("Select All [Ctrl+A]")
                     return
                 }
                 HidKeyCodes.KEY_X -> {
-                    ic.performContextMenuAction(android.R.id.cut)
+                    ic?.performContextMenuAction(android.R.id.cut)
+                    injectKeyTap(KeyEvent.KEYCODE_X, mod)
                     updateStatus("Cut [Ctrl+X]")
                     return
                 }
                 HidKeyCodes.KEY_Z -> {
-                    ic.performContextMenuAction(android.R.id.undo)
+                    ic?.performContextMenuAction(android.R.id.undo)
+                    injectKeyTap(KeyEvent.KEYCODE_Z, mod)
                     updateStatus("Undo [Ctrl+Z]")
                     return
                 }
                 else -> {
                     val androidKey = getAndroidKeyCode(code)
                     if (androidKey != KeyEvent.KEYCODE_UNKNOWN) {
-                        sendMetaKeyEvent(ic, androidKey, mod)
+                        injectKeyTap(androidKey, mod)
                         updateStatus("Ctrl+Key($code)")
                         return
                     }
@@ -358,9 +393,19 @@ class KaiusImeService : InputMethodService() {
             currentWord = ""
             val androidKey = getAndroidKeyCode(code)
             if (androidKey != KeyEvent.KEYCODE_UNKNOWN) {
-                sendMetaKeyEvent(ic, androidKey, mod)
+                injectKeyTap(androidKey, mod)
                 return
             }
+        }
+
+        val ic = currentInputConnection
+        if (ic == null) {
+            // No focused text field (e.g. user on Receiver screen, Game, Home): dispatch system keys directly
+            val androidKey = getAndroidKeyCode(code)
+            if (androidKey != KeyEvent.KEYCODE_UNKNOWN) {
+                sendDownUpKeyEvents(androidKey)
+            }
+            return
         }
 
         // 5. Navigation, Editing, and Function Keys
@@ -369,20 +414,17 @@ class KaiusImeService : InputMethodService() {
                 if (currentWord.isNotEmpty()) {
                     currentWord = currentWord.dropLast(1)
                 }
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL))
+                injectKeyTap(KeyEvent.KEYCODE_DEL, mod)
                 updateStatus("Backspace")
             }
             HidKeyCodes.KEY_DELETE -> {
                 currentWord = ""
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_FORWARD_DEL))
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_FORWARD_DEL))
+                injectKeyTap(KeyEvent.KEYCODE_FORWARD_DEL, mod)
                 updateStatus("Delete")
             }
             HidKeyCodes.KEY_ENTER -> {
                 currentWord = ""
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+                injectKeyTap(KeyEvent.KEYCODE_ENTER, mod)
                 updateStatus("Enter")
             }
             HidKeyCodes.KEY_SPACE -> {
@@ -392,55 +434,53 @@ class KaiusImeService : InputMethodService() {
             }
             HidKeyCodes.KEY_TAB -> {
                 currentWord = ""
-                sendMetaKeyEvent(ic, KeyEvent.KEYCODE_TAB, mod)
+                injectKeyTap(KeyEvent.KEYCODE_TAB, mod)
                 updateStatus("Tab")
             }
             HidKeyCodes.KEY_ESC -> {
                 currentWord = ""
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ESCAPE))
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ESCAPE))
+                injectKeyTap(KeyEvent.KEYCODE_ESCAPE, mod)
                 updateStatus("Esc")
             }
             HidKeyCodes.KEY_LEFT_ARROW -> {
                 currentWord = ""
-                sendMetaKeyEvent(ic, KeyEvent.KEYCODE_DPAD_LEFT, mod)
+                injectKeyTap(KeyEvent.KEYCODE_DPAD_LEFT, mod)
             }
             HidKeyCodes.KEY_RIGHT_ARROW -> {
                 currentWord = ""
-                sendMetaKeyEvent(ic, KeyEvent.KEYCODE_DPAD_RIGHT, mod)
+                injectKeyTap(KeyEvent.KEYCODE_DPAD_RIGHT, mod)
             }
             HidKeyCodes.KEY_UP_ARROW -> {
                 currentWord = ""
-                sendMetaKeyEvent(ic, KeyEvent.KEYCODE_DPAD_UP, mod)
+                injectKeyTap(KeyEvent.KEYCODE_DPAD_UP, mod)
             }
             HidKeyCodes.KEY_DOWN_ARROW -> {
                 currentWord = ""
-                sendMetaKeyEvent(ic, KeyEvent.KEYCODE_DPAD_DOWN, mod)
+                injectKeyTap(KeyEvent.KEYCODE_DPAD_DOWN, mod)
             }
             HidKeyCodes.KEY_HOME -> {
                 currentWord = ""
-                sendMetaKeyEvent(ic, KeyEvent.KEYCODE_MOVE_HOME, mod)
+                injectKeyTap(KeyEvent.KEYCODE_MOVE_HOME, mod)
             }
             HidKeyCodes.KEY_END -> {
                 currentWord = ""
-                sendMetaKeyEvent(ic, KeyEvent.KEYCODE_MOVE_END, mod)
+                injectKeyTap(KeyEvent.KEYCODE_MOVE_END, mod)
             }
             HidKeyCodes.KEY_PAGE_UP -> {
                 currentWord = ""
-                sendMetaKeyEvent(ic, KeyEvent.KEYCODE_PAGE_UP, mod)
+                injectKeyTap(KeyEvent.KEYCODE_PAGE_UP, mod)
             }
             HidKeyCodes.KEY_PAGE_DOWN -> {
                 currentWord = ""
-                sendMetaKeyEvent(ic, KeyEvent.KEYCODE_PAGE_DOWN, mod)
+                injectKeyTap(KeyEvent.KEYCODE_PAGE_DOWN, mod)
             }
             HidKeyCodes.KEY_CAPS_LOCK -> {
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CAPS_LOCK))
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CAPS_LOCK))
+                injectKeyTap(KeyEvent.KEYCODE_CAPS_LOCK, mod)
             }
             in HidKeyCodes.KEY_F1..HidKeyCodes.KEY_F12 -> {
                 currentWord = ""
                 val fKey = KeyEvent.KEYCODE_F1 + (code - HidKeyCodes.KEY_F1)
-                sendMetaKeyEvent(ic, fKey, mod)
+                injectKeyTap(fKey, mod)
                 updateStatus("F${code - HidKeyCodes.KEY_F1 + 1}")
             }
             else -> {
@@ -472,7 +512,7 @@ class KaiusImeService : InputMethodService() {
         }
     }
 
-    private fun sendMetaKeyEvent(ic: android.view.inputmethod.InputConnection, androidKeyCode: Int, mod: Byte) {
+    private fun injectKeyEvent(keyAction: Int, androidKeyCode: Int, mod: Byte) {
         var meta = 0
         if ((mod.toInt() and (HidKeyCodes.MOD_LEFT_CTRL.toInt() or HidKeyCodes.MOD_RIGHT_CTRL.toInt())) != 0) {
             meta = meta or KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON
@@ -486,9 +526,27 @@ class KaiusImeService : InputMethodService() {
         if ((mod.toInt() and (HidKeyCodes.MOD_LEFT_GUI.toInt() or HidKeyCodes.MOD_RIGHT_GUI.toInt())) != 0) {
             meta = meta or KeyEvent.META_META_ON or KeyEvent.META_META_LEFT_ON
         }
+
         val now = android.os.SystemClock.uptimeMillis()
-        ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, androidKeyCode, 0, meta))
-        ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, androidKeyCode, 0, meta))
+        val event = KeyEvent(now, now, keyAction, androidKeyCode, 0, meta)
+        val ic = currentInputConnection
+        if (ic != null) {
+            ic.sendKeyEvent(event)
+        } else {
+            sendDownUpKeyEvents(androidKeyCode)
+        }
+    }
+
+    private fun injectKeyTap(androidKeyCode: Int, mod: Byte) {
+        injectKeyEvent(KeyEvent.ACTION_DOWN, androidKeyCode, mod)
+        injectKeyEvent(KeyEvent.ACTION_UP, androidKeyCode, mod)
+    }
+
+    private fun releaseAllModifiers() {
+        injectKeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CTRL_LEFT, 0)
+        injectKeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_LEFT, 0)
+        injectKeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SHIFT_LEFT, 0)
+        injectKeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_META_LEFT, 0)
     }
 
     private fun getAndroidKeyCode(code: Byte): Int {

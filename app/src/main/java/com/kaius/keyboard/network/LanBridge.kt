@@ -7,7 +7,7 @@ package com.kaius.keyboard.network
  */
 object LanBridge {
     @Volatile
-    var onKeyReceived: ((code: Byte, mod: Byte) -> Unit)? = null
+    var onKeyReceived: ((action: String, code: Byte, mod: Byte) -> Unit)? = null
 
     @Volatile
     var isTelexEnabled: Boolean = true
