@@ -132,6 +132,7 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
     val repeatDelayMs by viewModel.repeatDelayMs.collectAsState()
     val repeatIntervalMs by viewModel.repeatIntervalMs.collectAsState()
     val isKeyboardActive by viewModel.isKeyboardActive.collectAsState()
+    val myLocalIp by viewModel.myLocalIp.collectAsState()
 
     val runtimeSettings = remember(rgbTheme, isReactiveGlow, isHapticEnabled, hapticStrength, isSoundEnabled, repeatDelayMs, repeatIntervalMs) {
         KeyboardRuntimeSettings(
@@ -179,6 +180,7 @@ fun KeyboardScreen(viewModel: KeyboardViewModel) {
             if (currentMode == TransportMode.WIFI_LAN) {
                 Spacer(modifier = Modifier.height(2.dp))
                 LanConnectionBar(
+                    myLocalIp = myLocalIp,
                     targetIp = state.wifiTargetIp,
                     targetPort = state.wifiTargetPort,
                     receivers = discoveredReceivers,
@@ -495,6 +497,7 @@ fun LandscapeUnifiedHeader(
 
 @Composable
 fun LanConnectionBar(
+    myLocalIp: String,
     targetIp: String,
     targetPort: Int,
     receivers: List<DiscoveredReceiver>,
@@ -514,6 +517,17 @@ fun LanConnectionBar(
         label = "scan_angle"
     )
 
+    val isSameSubnet = remember(myLocalIp, targetIp) {
+        if (myLocalIp == "127.0.0.1" || myLocalIp == "0.0.0.0") true
+        else {
+            val dot1 = myLocalIp.lastIndexOf('.')
+            val dot2 = targetIp.lastIndexOf('.')
+            if (dot1 > 0 && dot2 > 0) {
+                myLocalIp.substring(0, dot1) == targetIp.substring(0, dot2)
+            } else true
+        }
+    }
+
     Surface(
         color = SurfaceBar,
         shape = RoundedCornerShape(4.dp),
@@ -529,7 +543,7 @@ fun LanConnectionBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // LEFT: Current target IP & Clickable connect/change button
+            // LEFT: My IP -> Target IP (Transparently explains both device IPs)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -539,22 +553,52 @@ fun LanConnectionBar(
                     .padding(horizontal = 6.dp, vertical = 2.dp)
             ) {
                 Text(
-                    text = "Gửi tới: $targetIp:$targetPort",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = AccentPrimary,
+                    text = "Máy này: $myLocalIp",
+                    fontSize = 9.sp,
+                    color = KeyTextSubtle,
                     fontFamily = FontFamily.Monospace
                 )
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(3.dp))
                 Text(
-                    text = "[Đổi IP]",
-                    fontSize = 9.sp,
+                    text = "➜",
+                    fontSize = 8.sp,
+                    color = KeyTextMuted
+                )
+                Spacer(modifier = Modifier.width(3.dp))
+                Text(
+                    text = "$targetIp:$targetPort",
+                    fontSize = 9.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isSameSubnet) AccentPrimary else StatusPending,
+                    fontFamily = FontFamily.Monospace
+                )
+                Spacer(modifier = Modifier.width(3.dp))
+                Text(
+                    text = "[Đổi]",
+                    fontSize = 8.5.sp,
                     fontWeight = FontWeight.Bold,
                     color = StatusSuccess
                 )
             }
 
-            if (targetIp != "192.168.43.1") {
+            if (!isSameSubnet && receivers.isEmpty()) {
+                Spacer(modifier = Modifier.width(4.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(StatusPending.copy(alpha = 0.15f))
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "Khác dải IP • Hãy [Quét LAN]",
+                        fontSize = 8.5.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = StatusPending
+                    )
+                }
+            }
+
+            if (targetIp != "192.168.43.1" && myLocalIp.startsWith("192.168.43.")) {
                 Spacer(modifier = Modifier.width(4.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

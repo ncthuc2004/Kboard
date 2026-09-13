@@ -13,6 +13,10 @@ import com.kaius.keyboard.transport.ConnectionStatus
 import com.kaius.keyboard.transport.TransportManager
 import com.kaius.keyboard.transport.TransportMode
 import com.kaius.keyboard.transport.TransportState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -130,12 +134,39 @@ class KeyboardViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    private val _myLocalIp = MutableStateFlow(lanServer.getLocalIpAddress())
+    val myLocalIp: StateFlow<String> = _myLocalIp.asStateFlow()
+
     init {
         val telexOn = _isTelexEnabled.value
         transportManager.wifiTransport.isTelexEnabled = telexOn
         transportManager.initialize()
         refreshPairedDevices()
         lanDiscovery.startDiscovery()
+
+        // Periodically refresh my local IP to keep UI in sync with Wi-Fi / Hotspot changes
+        viewModelScope.launch(Dispatchers.IO) {
+            while (isActive) {
+                delay(3000L)
+                val ip = lanServer.getLocalIpAddress()
+                if (ip != _myLocalIp.value && ip != "127.0.0.1") {
+                    _myLocalIp.value = ip
+                }
+            }
+        }
+
+        // Auto-connect to discovered receiver on the same network
+        viewModelScope.launch {
+            lanDiscovery.discoveredReceivers.collect { receivers ->
+                if (receivers.size == 1) {
+                    val single = receivers.first()
+                    val currentTarget = transportManager.wifiTransport.state.value.wifiTargetIp
+                    if (currentTarget != single.ip) {
+                        updateWifiTarget(single.ip, single.port)
+                    }
+                }
+            }
+        }
     }
 
     fun openSettings(tab: Int = 0) {
