@@ -3,7 +3,7 @@
 Kboard - PC Wi-Fi LAN Receiver (Windows Desktop GUI)
 Ultra-low latency UDP receiver that translates phone packets into native Windows keystrokes.
 Features a modern Cyberpunk / Industrial Dark Mode desktop GUI, real-time event logs,
-network status, and direct SendInput injection.
+network status, single-instance mutex protection, and direct SendInput injection.
 """
 
 import os
@@ -13,6 +13,7 @@ import json
 import socket
 import threading
 import queue
+import subprocess
 import ctypes
 from ctypes import wintypes
 
@@ -33,12 +34,29 @@ if sys.platform == "win32":
 
 PORT = 8964
 APP_VERSION = "v1.1.19"
+WINDOW_TITLE = f"Kboard Receiver {APP_VERSION}"
+MUTEX_NAME = "Global\\KboardReceiver_SingleInstance_Mutex_v1"
 
 # Resource helper for PyInstaller bundled executable
 def get_resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path)
+
+# Windows Single-Instance Check
+def check_single_instance():
+    if sys.platform != "win32":
+        return True, None
+    mutex = ctypes.windll.kernel32.CreateMutexW(None, False, MUTEX_NAME)
+    last_error = ctypes.windll.kernel32.GetLastError()
+    if last_error == 183:  # ERROR_ALREADY_EXISTS
+        # Find already running window and bring to front
+        hwnd = ctypes.windll.user32.FindWindowW(None, WINDOW_TITLE)
+        if hwnd:
+            ctypes.windll.user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+            ctypes.windll.user32.SetForegroundWindow(hwnd)
+        return False, mutex
+    return True, mutex
 
 # Windows SendInput setup
 if sys.platform == "win32":
@@ -254,12 +272,16 @@ def format_modifiers(mod):
 
 
 class KboardReceiverApp:
-    def __init__(self, root):
+    def __init__(self, root, mutex=None):
         self.root = root
-        self.root.title(f"Kboard Receiver {APP_VERSION}")
+        self.mutex = mutex
+        self.root.title(WINDOW_TITLE)
         self.root.geometry("580x640")
         self.root.minsize(520, 560)
         self.root.configure(bg="#0B0E14")
+
+        # Handle clean window closing
+        self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
 
         # Window icon
         icon_path = get_resource_path("receiver_icon.ico")
@@ -271,6 +293,7 @@ class KboardReceiverApp:
 
         self.event_queue = queue.Queue()
         self.is_running = True
+        self.sock = None
         self.packet_count = 0
         self.connected_senders = set()
         self.local_ip = get_local_ip()
@@ -325,6 +348,13 @@ class KboardReceiverApp:
 
         self.status_text = tk.Label(status_row, text=" ĐANG LẮNG NGHE CỔNG UDP 8964", font=("Segoe UI", 9, "bold"), fg="#10B981", bg="#121722")
         self.status_text.pack(side=tk.LEFT)
+
+        # Action button to free port if needed
+        self.free_port_btn = tk.Button(
+            status_row, text="Giải phóng cổng & Khởi động lại", font=("Segoe UI", 8, "bold"),
+            bg="#EF4444", fg="#FFFFFF", activebackground="#DC2626", activeforeground="#FFFFFF",
+            relief=tk.FLAT, padx=8, pady=2, cursor="hand2", command=self._free_port_and_restart
+        )
 
         ip_box = tk.Frame(conn_frame, bg="#0B0E14", padx=12, pady=8, highlightthickness=1, highlightbackground="#1F293D")
         ip_box.pack(fill=tk.X, pady=(10, 6))
@@ -391,6 +421,7 @@ class KboardReceiverApp:
         self.log_text.tag_config("TAP", foreground="#00E5FF")
         self.log_text.tag_config("DISC", foreground="#F59E0B")
         self.log_text.tag_config("MOD", foreground="#818CF8")
+        self.log_text.tag_config("ERR", foreground="#EF4444")
 
         # Bottom Controls
         bottom_bar = tk.Frame(self.root, bg="#0B0E14", padx=14, pady=8)
@@ -408,8 +439,7 @@ class KboardReceiverApp:
         author_lbl = tk.Label(bottom_bar, text="Kaius Ecosystem", font=("Segoe UI", 8), fg="#475569", bg="#0B0E14")
         author_lbl.pack(side=tk.RIGHT)
 
-        self._append_log("Khởi động Receiver thành công.", "DISC")
-        self._append_log(f"Lắng nghe tại {self.local_ip}:{PORT}. Sẵn sàng nhận phím.", "DISC")
+        self._append_log("Khởi động Kboard Receiver thành công.", "DISC")
 
     def _toggle_on_top(self):
         self.root.attributes("-topmost", self.always_on_top_var.get())
@@ -433,21 +463,48 @@ class KboardReceiverApp:
         self.log_text.see(tk.END)
         self.log_text.config(state=tk.DISABLED)
 
+    def _free_port_and_restart(self):
+        self._append_log("Đang giải phóng cổng 8964...", "DISC")
+        my_pid = os.getpid()
+        # Find and kill other processes holding UDP 8964
+        try:
+            cmd = f'powershell -Command "Get-NetUDPEndpoint -LocalPort {PORT} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess"'
+            output = subprocess.check_output(cmd, shell=True, text=True).strip()
+            for line in output.splitlines():
+                line = line.strip()
+                if line and line.isdigit():
+                    pid = int(line)
+                    if pid != my_pid:
+                        subprocess.run(f"taskkill /F /PID {pid}", shell=True, capture_output=True)
+                        self._append_log(f"Đã dừng tiến trình cũ (PID {pid}) đang giữ cổng {PORT}.", "DISC")
+        except Exception as e:
+            self._append_log(f"Không thể kiểm tra PID cổng: {e}", "ERR")
+
+        # Restart UDP thread
+        self._start_udp_thread()
+
     def _start_udp_thread(self):
+        if self.sock:
+            try:
+                self.sock.close()
+            except Exception:
+                pass
         self.udp_thread = threading.Thread(target=self._udp_receiver_worker, daemon=True)
         self.udp_thread.start()
 
     def _udp_receiver_worker(self):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
-            sock.bind(("0.0.0.0", PORT))
+            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.sock.bind(("0.0.0.0", PORT))
+            self.event_queue.put(("STATUS_OK", f"Lắng nghe tại {self.local_ip}:{PORT}. Sẵn sàng nhận phím.", "DISC"))
         except Exception as e:
-            self.event_queue.put(("ERROR", f"Không thể mở cổng {PORT}: {e}", "DOWN"))
+            self.event_queue.put(("PORT_ERROR", f"Không thể mở cổng {PORT}: {e}\n(Có tiến trình khác đang giữ cổng. Hãy bấm nút 'Giải phóng cổng' bên trên).", "ERR"))
             return
 
         while self.is_running:
             try:
-                data, addr = sock.recvfrom(1024)
+                data, addr = self.sock.recvfrom(1024)
                 msg = json.loads(data.decode("utf-8"))
                 action = msg.get("a")
 
@@ -458,7 +515,7 @@ class KboardReceiverApp:
                         "ip": self.local_ip,
                         "port": PORT
                     }).encode("utf-8")
-                    sock.sendto(announce_data, addr)
+                    self.sock.sendto(announce_data, addr)
                     self.event_queue.put(("DISCOVER", f"Nhận diện thiết bị từ {addr[0]}", "DISC"))
                     continue
 
@@ -507,11 +564,12 @@ class KboardReceiverApp:
                         release_all_modifiers()
                         self.event_queue.put(("KEY_EVENT", f"[TAP]  Phím bổ trợ: {mod_str}", "TAP", mod_str))
 
-            except Exception as e:
+            except Exception:
                 pass
 
         try:
-            sock.close()
+            if self.sock:
+                self.sock.close()
         except Exception:
             pass
 
@@ -522,6 +580,15 @@ class KboardReceiverApp:
                 ev_type = item[0]
                 text = item[1]
                 tag = item[2]
+
+                if ev_type == "STATUS_OK":
+                    self.status_dot.config(text="●", fg="#10B981")
+                    self.status_text.config(text=" ĐANG LẮNG NGHE CỔNG UDP 8964", fg="#10B981")
+                    self.free_port_btn.pack_forget()
+                elif ev_type == "PORT_ERROR":
+                    self.status_dot.config(text="▲", fg="#EF4444")
+                    self.status_text.config(text=" CỔNG 8964 ĐANG BỊ CHIẾM DỤNG", fg="#EF4444")
+                    self.free_port_btn.pack(side=tk.RIGHT, padx=(10, 0))
 
                 self.packet_count += 1
                 self.packets_lbl.config(text=f"Gói tin: {self.packet_count}")
@@ -536,10 +603,32 @@ class KboardReceiverApp:
 
         self.root.after(40, self._poll_queue)
 
+    def _on_closing(self):
+        self.is_running = False
+        try:
+            if self.sock:
+                self.sock.close()
+        except Exception:
+            pass
+        if self.mutex:
+            try:
+                ctypes.windll.kernel32.CloseHandle(self.mutex)
+            except Exception:
+                pass
+        self.root.destroy()
+        sys.exit(0)
+
 
 def main():
+    # 1. Single Instance Check (prevent opening duplicate instances)
+    is_single, mutex = check_single_instance()
+    if not is_single:
+        # Another instance is already running; brought to front, exit silently
+        sys.exit(0)
+
+    # 2. Launch Main GUI
     root = tk.Tk()
-    app = KboardReceiverApp(root)
+    app = KboardReceiverApp(root, mutex=mutex)
     root.mainloop()
 
 if __name__ == "__main__":
