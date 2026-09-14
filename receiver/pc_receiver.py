@@ -25,12 +25,21 @@ except ImportError as e:
     print(f"Missing UI dependency: {e}")
     sys.exit(1)
 
-# Enable High DPI scaling on Windows
+# Enable AppUserModelID and Per-Monitor High DPI v2 on Windows
 if sys.platform == "win32":
     try:
-        ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        myappid = "kaius.kboard.receiver.app"
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     except Exception:
         pass
+    try:
+        # DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 (-4)
+        ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
+    except Exception:
+        try:
+            ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        except Exception:
+            pass
 
 PORT = 8964
 APP_VERSION = "v1.1.19"
@@ -283,11 +292,46 @@ class KboardReceiverApp:
         # Handle clean window closing
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
 
-        # Window icon
+        # High-resolution multi-scale icons for Titlebar, Taskbar, and Alt+Tab
+        logo_path = get_resource_path("kboard_512.png")
         icon_path = get_resource_path("receiver_icon.ico")
+
+        # 1. Provide crisp multi-resolution icons to Tkinter wm_iconphoto
+        if os.path.exists(logo_path):
+            try:
+                base_img = Image.open(logo_path).convert("RGBA")
+                self.icon_photos = []
+                for sz in (16, 24, 32, 48, 64, 128, 256):
+                    img_scaled = base_img.resize((sz, sz), Image.Resampling.LANCZOS)
+                    self.icon_photos.append(ImageTk.PhotoImage(img_scaled))
+                self.root.wm_iconphoto(True, *self.icon_photos)
+            except Exception:
+                pass
+
+        # 2. Set iconbitmap for classic Win32 window manager
         if os.path.exists(icon_path):
             try:
                 self.root.iconbitmap(icon_path)
+            except Exception:
+                pass
+
+        # 3. Explicitly send WM_SETICON to native Win32 window handle with 256x256 and 32x32 crisp icons
+        if sys.platform == "win32" and os.path.exists(icon_path):
+            try:
+                self.root.update_idletasks()
+                hwnd = ctypes.windll.user32.GetParent(self.root.winfo_id()) or self.root.winfo_id()
+                LR_LOADFROMFILE = 0x00000010
+                IMAGE_ICON = 1
+                WM_SETICON = 0x0080
+                ICON_SMALL = 0
+                ICON_BIG = 1
+
+                hicon_big = ctypes.windll.user32.LoadImageW(None, icon_path, IMAGE_ICON, 256, 256, LR_LOADFROMFILE)
+                hicon_small = ctypes.windll.user32.LoadImageW(None, icon_path, IMAGE_ICON, 32, 32, LR_LOADFROMFILE)
+                if hicon_big:
+                    ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, hicon_big)
+                if hicon_small:
+                    ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, hicon_small)
             except Exception:
                 pass
 
